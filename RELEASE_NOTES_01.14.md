@@ -1,27 +1,17 @@
-# PS2ME PS3 01.14: MP3 stack overflow repair
+# PS3ME 01.14 | Experimental Alpha
 
-In 01.13, MP3 decoding occurred inside SDL's audio callback. The pinned PS3 SDK gives SDL threads a 16,384-byte stack, while the PPU compiler reports a 17,040-byte stack frame for `mp3dec_decode_frame()`. A host playback test reproduced a crash with a guarded 16 KiB stack.
+## Real PS3 testing
+The project owner has tested PS3ME on physical PS3 hardware and reports that almost all of the games they tried work. This does not imply full Java ME compatibility; specific games can fail, freeze or have audio and input issues.
 
-## Changes
+**Version-specific distinction:** The 01.14 MP3 decoder change was validated by compiler/host-side checks, but 01.14 had not been independently verified on the console when packaged. Hardware successes reported for earlier versions should not be misrepresented as verification of every 01.14 fix.
 
-- MP3 preparation now runs on a joinable PPU worker with an explicit 256 KiB stack, outside the SDL audio callback.
-- Render callback only mixes prepared PCM, with no decoding, allocations, waits, or file access.
-- Bounded 16 MiB shared native audio budget, including resident audio storage.
-- Source-rate/channel signed 16-bit PCM avoids expanded 48 kHz stereo float storage.
-- Integer sample phase allows deterministic looping and replay.
-- Retains MIDI, WAV, prior Player replay fixes, and 32 native Player slots.
+## What's changed in 01.14
+In 01.13 the MP3 decoder could exceed the PS3 SDL audio callback thread's 16 KiB stack. The 01.14 code moves MP3 preparation to a joinable 256 KiB worker, then plays back bounded PCM without decoding on the callback. It enforces a shared 16 MiB native audio budget and keeps MIDI/WAV and Player replay fixes.
 
-## Validation
+Tests: guarded host stack regression, PPU compiler stack audit, ASan/UBSan checks of 45 MP3 assets and package structure checks. Host validation cannot guarantee console results.
 
-- Host-based guarded-stack test and PPU compiler stack audit.
-- ASan/UBSan host tests for 45 MP3 assets, replay, looping, slots, errors, and budgets.
-- PowerPC64 Cell LV2 ELF rebuilt and package payload structurally validated.
-- **No PS3 hardware or RPCS3 execution of 01.14 has been performed.** The host tests are not proof of console compatibility.
+## Installation and games
+Install `PS2ME_PS3_01.14.pkg` with PS3 homebrew enabled. Preserve the existing installation and game saves when updating. Copy legally obtained `.jar` files to `/dev_hdd0/game/PS3ME0001/USRDIR/games/`, or browse games from USB.
 
-## Installing
-
-Install `PS2ME_PS3_01.14.pkg` over 01.13 with HEN enabled without deleting the existing app/saved data. No game JARs are bundled. Nyan Cat requires the separately corrected JAR supplied with 01.13.
-
-The full original source archive retains its separate licensing, attribution and dependency notices.
-
-**Note:** The GitHub repository import is currently partial: do not assume these individual source files alone constitute a buildable tree.
+## About
+An experimental, independently maintained PS3 port of [PS2ME](https://github.com/Wellinator/PS2ME), with a UI inspired by salsa64's work. This project is openly vibe-coded: substantial code was produced through AI assistance under the guidance of its owner, who does not claim coding expertise and tested it on real PS3 hardware. GPL-2.0-only for the covered project code, with separate third-party component licenses and notices. See README and LICENSE.
