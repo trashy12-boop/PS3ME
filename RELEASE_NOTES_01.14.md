@@ -1,5 +1,7 @@
 # PS3ME 01.14 | Experimental Alpha
 
+**IMPORTANT: PS3ME is experimental. Stability and compatibility are not guaranteed for any J2ME game, even one previously tested successfully.** Crashes, freezes, audio or control issues, regressions between versions, and loss of unsaved progress are possible. Keep backups of important saved data.
+
 ## Real PS3 testing
 The project owner has tested PS3ME on physical PS3 hardware and reports that almost all of the games they tried work. This does not imply full Java ME compatibility; specific games can fail, freeze or have audio and input issues.
 
