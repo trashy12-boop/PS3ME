@@ -2,6 +2,8 @@
 
 **Experimental native PS3 port of [PS2ME](https://github.com/Wellinator/PS2ME)** (the original PlayStation 2 J2ME emulator). PS3ME uses a PS3-native runtime, not PS2 backwards compatibility.
 
+**⚠️ Experimental software: Stability and compatibility are NOT guaranteed for any J2ME game, including games that worked in previous tests.** Individual games may crash, freeze, run slowly, behave incorrectly, or have broken sound/controls. Back up any important saved data before use.
+
 ## Tested on actual PS3 hardware
 
 **The project owner has tested PS3ME on a real PS3, and reports that almost every game they tried works.** Individual games still have compatibility issues, and crashes, missing sounds, or freezing are possible. This is **experimental software**, not a claim of universal compatibility. The specific **01.14 MP3 stack-overflow fix** passed host and build tests but had not yet been verified on physical PS3 hardware when packaged; earlier real-console tests do not prove that fix works.
@@ -88,6 +90,6 @@ This GitHub repository may still be importing the complete 01.14 source tree fro
 
 ## Versions and tags
 
-Tags identify a **specific code snapshot**. Use `v01.14` for the 01.14 build; use **“PS3ME 01.14 | Experimental Alpha”** as the release title. The *pre-release* checkbox indicates unstable/experimental status. **“Alpha” belongs in the title/status, not the version tag.** Next release: `v01.15`, then `v01.16`. This makes downloads and updates unambiguous.
+Tags identify a **specific code snapshot**. Use `v1.14` for the 01.14 build; use **“PS3ME 01.14 | Experimental Alpha”** as the release title. The *pre-release* checkbox indicates unstable/experimental status. **“Alpha” belongs in the title/status, not the version tag.** Next release: `v1.15`, then `v1.16`. This makes downloads and updates unambiguous.
 
 See [01.14 release notes](RELEASE_NOTES_01.14.md).
