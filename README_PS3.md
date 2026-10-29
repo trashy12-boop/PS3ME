@@ -73,3 +73,12 @@ Relink with `python3 tools/build_application.py --reuse-prebuilt-archives`
 after obtaining the pinned PS3 SDK. Package with tools/package_application.py
 --output PATH; add --crypto-libs PATH if the SDK signer needs libcrypto1.1.
 The canonical native ELF is build/ps3/release_native.elf.
+
+## 01.15 loading candidate
+
+Read-only JAR/ZIP snapshots (8 MiB per file, 12 MiB total) reduce repeated
+filesystem seeks and reads. Files outside that budget use the normal path.
+RGB565 scaling now avoids divisions per TV pixel, with pixel-identical output.
+These are loading-path optimizations; Bounce Tales startup completion and actual
+PS3 load-time improvements still need validation. See RELEASE_NOTES_01.15.md
+and build/validation/loading_runtime_0115.json for measured scope.

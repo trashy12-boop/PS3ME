@@ -8,6 +8,12 @@
 
 **The project owner has tested PS3ME on a real PS3, and reports that almost every game they tried works.** Individual games still have compatibility issues, and crashes, missing sounds, or freezing are possible. This is **experimental software**, not a claim of universal compatibility. The specific **01.14 MP3 stack-overflow fix** passed host and build tests but had not yet been verified on physical PS3 hardware when packaged; earlier real-console tests do not prove that fix works.
 
+## 01.15 loading candidate
+
+Adds bounded read-only archive caching and pixel-identical scaling optimizations.
+Host tests passed; game loading times on real PS3 hardware are not yet measured.
+See [01.15 notes](RELEASE_NOTES_01.15.md) for limits and validation scope.
+
 ## Download / install
 
 Get the downloadable `.pkg` from [GitHub Releases](https://github.com/trashy12-boop/PS3ME-a-PS2ME-Fork/releases). Enable PS3 homebrew support (e.g. HEN) and install the PKG. When upgrading, install over the existing installation so existing game data remains intact. Title ID: `PS3ME0001`.

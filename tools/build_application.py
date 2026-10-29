@@ -34,24 +34,24 @@ def main():
             assert (build/'libps3me_properties.a').is_file()
             run(['make','-C','ps3','platform',str(build/'libps3me_javacall.a')])
         else:run(['make','-C','ps3','javacall'])
-        for source,includes in [('Main',inc),('MidpRuntime',inc+midp_inc),('MediaAudio',inc+midp_inc),('MidiEngine',inc),('Mp3Engine',inc),('BrowserUI',inc)]:
+        for source,includes in [('Main',inc),('MidpRuntime',inc+midp_inc),('MediaAudio',inc+midp_inc),('MidiEngine',inc),('Mp3Engine',inc),('BrowserUI',inc),('VmFiles',inc)]:
             run([cc,'-std=gnu++11','-O2','-DPRODUCT','-DENABLE_MIDP_MALLOC=1']+['-I'+str(x) for x in includes]+['-c','ps3/src/'+source+'.cpp','-o',build/(source+'.o')])
         archives=[ROOT/'build/midp_ppu/bin/ppu/libmidp.a',ROOT/'build/vm_ppu/ps3_ppu/dist/lib/libcldc_vm.a',
                   ROOT/'build/vm_ppu/ps3_ppu/dist/lib/libcldc_vmx.a']
         archives+=[build/('libps3me_'+x+'.a') for x in ('javacall','properties','platform')]
         archives+=sorted((ROOT/'build/pcsl_ppu/linux_ppu/lib').glob('*.a'))
-        run([cc,build/'Main.o',build/'MidpRuntime.o',build/'MediaAudio.o',build/'MidiEngine.o',build/'Mp3Engine.o',build/'BrowserUI.o',ROOT/'build/vm_ppu/ps3_ppu/target/product/ROMImage.o',
+        run([cc,build/'Main.o',build/'VmFiles.o',build/'MidpRuntime.o',build/'MediaAudio.o',build/'MidiEngine.o',build/'Mp3Engine.o',build/'BrowserUI.o',ROOT/'build/vm_ppu/ps3_ppu/target/product/ROMImage.o',
              '-Wl,--start-group']+archives+['-L'+str(sdk/'portlibs/ppu/lib'),'-L'+str(sdk/'ppu/lib'),
              '-lSDL_gfx','-lSDL_ttf','-lfreetype','-lSDL_image','-lpng','-ljpeg','-ltiff','-lzip','-lz','-lSDL_mixer','-lmikmod','-lvorbisfile','-lvorbis','-logg','-lSDL','-lm','-lgcm_sys','-lrsx','-lsysutil','-lio','-laudio','-lrt','-llv2',
-             '-Wl,--end-group','-o',build/'PS2ME_PS3_01.14.elf'])
+             '-Wl,--end-group','-Wl,-Map='+str(build/'application.map'),'-o',build/'PS2ME_PS3_01.15.elf'])
     # Follow ppu_rules: strip the linked ELF, then fix imports/PRX descriptors.
     # The signed SELF writer does not preserve non-loadable debug sections.
-    shutil.copy2(build/'PS2ME_PS3_01.14.elf',build/'PS2ME_PS3_01.14.debug.elf')
-    subprocess.run([str(sdk/'ppu/bin/ppu-strip'),str(build/'PS2ME_PS3_01.14.debug.elf'),'-o',str(build/'PS2ME_PS3_01.14.elf')],env=env,check=True)
-    subprocess.run([str(sdk/'bin/sprxlinker'),str(build/'PS2ME_PS3_01.14.elf')],env=env,check=True)
-    for name in ('PS2ME_PS3_01.14.elf','PS2ME_PS3_01.14.debug.elf'):
+    shutil.copy2(build/'PS2ME_PS3_01.15.elf',build/'PS2ME_PS3_01.15.debug.elf')
+    subprocess.run([str(sdk/'ppu/bin/ppu-strip'),str(build/'PS2ME_PS3_01.15.debug.elf'),'-o',str(build/'PS2ME_PS3_01.15.elf')],env=env,check=True)
+    subprocess.run([str(sdk/'bin/sprxlinker'),str(build/'PS2ME_PS3_01.15.elf')],env=env,check=True)
+    for name in ('PS2ME_PS3_01.15.elf','PS2ME_PS3_01.15.debug.elf'):
         target=build/name;payload=target.read_bytes();temp=build/(name+'.complete');temp.write_bytes(payload);temp.replace(target)
-    (build/'release_native.elf').write_bytes((build/'PS2ME_PS3_01.14.elf').read_bytes())
+    (build/'release_native.elf').write_bytes((build/'PS2ME_PS3_01.15.elf').read_bytes())
     report=validate(build/'release_native.elf');report['elf']='build/ps3/release_native.elf'
     (ROOT/'build/validation/application_result.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report,indent=2))
