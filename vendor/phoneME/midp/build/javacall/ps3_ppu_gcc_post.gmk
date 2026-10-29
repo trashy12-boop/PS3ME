@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Build actual MIDP archive; final JavaCall/PS3 linking is a separate stage.
+ROM_DEPS := $(filter-out $(MIDP_OUTPUT_DIR)/ROMImage.cpp,$(ROM_DEPS)) $(MIDP_OUTPUT_DIR)/ROMStructs.h
+$(MIDP_OUTPUT_DIR)/ROMStructs.h: $(MIDP_CLASSES_ZIP)
+	cd $(MIDP_OUTPUT_DIR) && ASAN_OPTIONS=detect_leaks=0:handle_segv=2:allow_user_segv_handler=0:use_sigaltstack=0 $(PS3ME_LAYOUT_GENERATOR) +GenerateROMStructs -cp $(MIDP_CLASSES_ZIP) -romize =HeapCapacity128M
+EXTRA_CFLAGS := $(filter-out -DROMIZING -DROMIZING=0 -DROMIZING=1 -std=gnu++03 -pipe,$(EXTRA_CFLAGS)) -std=gnu99
+EXTRA_CPPFLAGS := $(filter-out -DROMIZING -DROMIZING=0 -DROMIZING=1 -pipe,$(EXTRA_CPPFLAGS))
+midp: $(BINDIR)/libmidp$(g).a
+$(BINDIR)/libmidp$(g).a: $(MIDP_OUTPUT_DIR)/ROMStructs.h $(OBJ_FILES) $(AMS_RUNMIDLET_OBJ_FILES)
+	rm -f $@
+	$(CREATE_LIB) $(AR_OUTPUT)`$(call fixcygpath,$@ $(OBJ_FILES) $(AMS_RUNMIDLET_OBJ_FILES))` $(LOG)

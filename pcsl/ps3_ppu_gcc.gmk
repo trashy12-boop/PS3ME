@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only
+PCSL_OS=linux
+PCSL_CPU=ppu
+PCSL_CHUNKMEM_IMPL=pcsl_chunkheap
+PCSL_CHUNKMEM_DIR=$(PCSL_DIR)/memory/heap
+FILE_MODULE=posix
+NETWORK_MODULE=stubs
+PRINT_MODULE=stdout
+include $(PCSL_DIR)/makefiles/share/gcc.gmk
+include $(PCSL_DIR)/makefiles/share/linux.gmk
+CFLAGS += -std=gnu99 -DPS3ME_PPU -fno-strict-aliasing -fwrapv -I$(PS3DEV)/ppu/include

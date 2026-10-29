@@ -1,0 +1,18 @@
+{
+  "phoneme": {
+    "url": "https://codeload.github.com/magicus/phoneME/zip/5a13f65cff07b2211b7b867c51ada4bb9c7d4f32",
+    "sha256": "c90d8fd5a2f7c5242517c141401c773d7dc3713615dc1aec33f34cab2aad652f",
+    "bytes": 39614703,
+    "archive": "zip",
+    "destination": "phoneME",
+    "commit": "5a13f65cff07b2211b7b867c51ada4bb9c7d4f32"
+  },
+  "sdk": {
+    "url": "https://github.com/bucanero/ps3toolchain/releases/download/ubuntu-latest-fad3b5fb/ps3dev-ubuntu-latest-2020-08-31.tar.gz",
+    "sha256": "bc411294771a9a17ce70941e935b26ec9567654a075c545da1c0d7898b3892d3",
+    "bytes": 511639159,
+    "archive": "tar.gz",
+    "destination": "ps3dev",
+    "compiler": "GCC 7.2.0"
+  }
+}

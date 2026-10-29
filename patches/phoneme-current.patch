@@ -1,0 +1,4416 @@
+diff --git a/cldc/build/share/jvm.make b/cldc/build/share/jvm.make
+index a38de35..2e07a37 100644
+--- a/cldc/build/share/jvm.make
++++ b/cldc/build/share/jvm.make
+@@ -1,3 +1,5 @@
++HOST_PREVERIFY_RUNNER ?= $(HOST_VM_RUNNER)
++.DELETE_ON_ERROR:
+ #
+ # Portions Copyright  2000-2008 Sun Microsystems, Inc. All Rights
+ # Reserved.  Use is subject to license terms.
+@@ -583,7 +585,7 @@ $(CLDC_ZIP): $(JAVA_FILES)
+ 		$(MAKE) $(PREVERIFY) ; \
+ 	fi
+ 	$(A)chmod a+rx $(PREVERIFY)
+-	$(A)$(PREVERIFY) -classpath $(CLASSES) -d $(CLASSES) $(TMPCLASSES)
++	$(A)$(HOST_PREVERIFY_RUNNER) $(PREVERIFY) -classpath $(CLASSES) -d $(CLASSES) $(TMPCLASSES)
+ 	$(A)echo rm -rf $@ $(TMPCLASSES)
+ 	$(A)$(JAR) -cfM0 $@ -C $(CLASSES) .
+ 	$(A)echo "=============================="
+@@ -680,7 +682,7 @@ $(GENERATED_ROM_FILE): $(ROM_GENERATOR) $(CLDC_ZIP) \
+                        $(WorkSpace)/src/vm/cldc_rom.cfg \
+                        $(WorkSpace)/src/vm/cldcx_rom.cfg \
+                        $(WorkSpace)/src/vm/cldctest_rom.cfg
+-	$(ROM_GENERATOR) -cp $(ROM_GEN_CLASSPATH) $(ROM_GEN_ARG) -romize
++	$(HOST_VM_RUNNER) $(ROM_GENERATOR) -cp $(ROM_GEN_CLASSPATH) $(ROM_GEN_ARG) -romize
+ 	$(A)mv ROMImage*.*pp `dirname $@`;
+ 	$(A)mv ROMLog.txt $(GEN_DIR)
+ 
+@@ -695,21 +697,21 @@ $(GENERATED_ROM_FILE): $(WorkSpace)/src/vm/share/ROM/ROMSkeleton.cpp
+ endif
+ 
+ test-romize:: $(ROM_GENERATOR)
+-	$(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) \
++	$(HOST_VM_RUNNER) $(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) \
+ 	    -romize +GenerateROMComments +VerboseROMComments \
+ 	    +GenerateCompilerComments =HeapCapacity32M =HeapMin32M \
+ 	    +GenerateROMStructs
+ 	mv ROMImage.cpp ROMImage.test.cpp
+ 
+ test-romize-2:: $(ROM_GENERATOR)
+-	$(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) \
++	$(HOST_VM_RUNNER) $(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) \
+ 	    -romize +GenerateROMComments +VerboseROMComments \
+ 	    +GenerateCompilerComments =HeapCapacity32M =HeapMin32M \
+ 	    +GenerateROMStructs -VerbosePointers
+ 	mv ROMImage.cpp ROMImage.test.cpp
+ 
+ test-romize-3:: $(ROM_GENERATOR)
+-	$(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) \
++	$(HOST_VM_RUNNER) $(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) \
+ 	    -romize +GenerateROMComments \
+ 	    =HeapCapacity32M =HeapMin32M \
+ 	    +GenerateROMStructs -VerbosePointers
+@@ -717,24 +719,29 @@ test-romize-3:: $(ROM_GENERATOR)
+ 
+ # Test new romization features
+ test-romize-new:: $(ROM_GENERATOR)
+-	$(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) $(NEW_ROM_GEN_ARG) \
++	$(HOST_VM_RUNNER) $(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) $(NEW_ROM_GEN_ARG) \
+ 	    -romize +GenerateROMComments +VerboseROMComments \
+ 	    +GenerateROMStructs
+ 	mv ROMImage.cpp ROMImage.test.cpp
+ 
+ test-romize-quick:: $(ROM_GENERATOR)
+-	$(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) \
++	$(HOST_VM_RUNNER) $(ROM_GENERATOR) -cp $(CLDC_ZIP) $(ROM_GEN_ARG) \
+ 	    -romize
+ 	mv ROMImage.cpp ROMImage.test.cpp
+ 
+ ifneq ($(IsRomGen), true)
+ Interpreter_$(arch)$(ASM_SUFFIX): $(LOOP_GENERATOR)
+-	$(LOOP_GENERATOR) $(LOOP_GEN_ARG)
++	$(HOST_VM_RUNNER) $(LOOP_GENERATOR) $(LOOP_GEN_ARG)
+ 
+ OopMaps.obj: OopMaps.cpp
+ 
++ifdef PS3ME_NATIVE_OOPMAPS
++OopMaps.cpp: $(PS3ME_NATIVE_OOPMAPS)
++	cp $< $@
++else
+ OopMaps.cpp: $(ROM_GENERATOR)
+-	$(ROM_GENERATOR) +GenerateOopMaps
++	$(HOST_VM_RUNNER) $(ROM_GENERATOR) +GenerateOopMaps
++endif
+ else
+ # Who generates the Interpreter_xxx.asm and OopMaps.cpp file for the ROMgen?
+ # A ROMgen is really a self-hosted VM build. It knows how to generate the
+@@ -1032,7 +1039,7 @@ ifeq ($(ENABLE_C_INTERPRETER), true)
+ 
+ ifdef carch
+ $(GP_TABLE_OBJ): $(LOOP_GENERATOR)
+-	$(A)$(LOOP_GENERATOR) -generate +GenerateGPTableOnly
++	$(A)$(HOST_VM_RUNNER) $(LOOP_GENERATOR) -generate +GenerateGPTableOnly
+ 	if test "$(carch)" = "thumb"; then \
+ 	    mv $(THIS_DIR)/Interpreter_arm.asm \
+                $(THIS_DIR)/Interpreter_$(carch).asm; \
+@@ -1046,7 +1053,7 @@ $(ROM_GENERATOR): $(CLDC_ZIP) $(Obj_Files) OopMapsSkeleton.obj $(GP_TABLE_OBJ)
+ 	$(A)echo "linking ROM generator: $(ROM_GENERATOR)"
+ 	$(A)$(LINK) $(PCSL_LIBS) $(LINK_FLAGS) -out:$@ \
+ 		$(Obj_Files) OopMapsSkeleton.obj $(GP_TABLE_OBJ)
+-	$(A)$(ROM_GENERATOR) +GenerateOopMaps
++	$(A)$(HOST_VM_RUNNER) $(ROM_GENERATOR) +GenerateOopMaps
+ 	$(A)$(MAKE) OopMaps.obj
+ 	$(A)echo "re-linking ROM generator: $(ROM_GENERATOR)"
+ 	$(A)$(LINK) $(PCSL_LIBS) $(LINK_FLAGS) -out:$@ $(Obj_Files) \
+@@ -1059,8 +1066,8 @@ $(ROM_GENERATOR): $(BUILD_PCH) $(Obj_Files) InterpreterSkeleton.obj \
+                                             OopMapsSkeleton.obj
+ 	$(A)$(LINK) $(PCSL_LIBS) $(LINK_FLAGS) -out:$@ $(Obj_Files) \
+ 		InterpreterSkeleton.obj OopMapsSkeleton.obj $(BUILD_PCH)
+-	$(A)$(ROM_GENERATOR) $(LOOP_GEN_ARG)
+-	$(A)$(ROM_GENERATOR) +GenerateOopMaps
++	$(A)$(HOST_VM_RUNNER) $(ROM_GENERATOR) $(LOOP_GEN_ARG)
++	$(A)$(HOST_VM_RUNNER) $(ROM_GENERATOR) +GenerateOopMaps
+ 	$(A)$(MAKE) Interpreter_$(arch).obj
+ 	$(A)$(MAKE) OopMaps.obj
+ 	$(A)$(LINK) $(PCSL_LIBS) $(LINK_FLAGS) -out:$@ \
+@@ -1960,9 +1967,9 @@ CPP_DEF_FLAGS_product    = -DPRODUCT
+ CPP_DEF_FLAGS	        += $(CPP_DEF_FLAGS_$(BUILD))
+ 
+ # C compiler flags
+-CPP_DEF_FLAGS           += -pipe -DGCC
++CPP_DEF_FLAGS           += -D_FILE_OFFSET_BITS=64 -Wno-narrowing -std=gnu++03 -fno-pie -DGCC
+ CPP_DEF_FLAGS           += -Wreturn-type -Wcomment -Wparentheses -Wformat
+-CPP_DEF_FLAGS           += -fstrict-aliasing
++CPP_DEF_FLAGS           += -fno-strict-aliasing -fwrapv
+ 
+ # C++ specific compiler flags
+ CPLUSPLUS_FLAGS         += -fno-gnu-keywords
+@@ -1997,7 +2004,7 @@ CPP_FLAGS_EXPORT         = $(CPP_DEF_FLAGS) $(CPLUSPLUS_FLAGS)
+ CPP_FLAGS                = $(CPP_FLAGS_EXPORT) $(CPP_INCLUDE_DIRS)
+ 
+ ifneq ($(ENABLE_COMPILATION_WARNINGS), true)
+-CPP_FLAGS               += -Werror
++# PS3ME: legacy VM warnings do not fail modern compilers
+ endif
+ 
+ LINK_OPT_FLAGS_debug    = $(DEBUG_SYMBOLS_FLAGS)
+@@ -2018,7 +2025,7 @@ LINK_FLAGS             += -lpthread
+ endif
+ 
+ # We want to link for 32-bit systems
+-LINK_FLAGS             += -m32
++LINK_FLAGS             += -m32 -no-pie
+ 
+ ifeq ($(ENABLE_PCSL), true)
+ PCSL_LIBS               = $(PCSL_DIST_DIR)/lib/libpcsl_memory.a  \
+@@ -2146,7 +2153,7 @@ ifeq ($(ENABLE_C_INTERPRETER), true)
+ 
+ ifdef carch
+ $(GP_TABLE_OBJ): $(LOOP_GENERATOR)
+-	$(A)$(LOOP_GENERATOR) -generate +GenerateGPTableOnly +GenerateGNUCode \
++	$(A)$(HOST_VM_RUNNER) $(LOOP_GENERATOR) -generate +GenerateGPTableOnly +GenerateGNUCode \
+ 		$(LOOP_GEN_ARG)
+ 	if test "$(carch)" = "thumb"; then \
+ 	    mv $(THIS_DIR)/Interpreter_arm.s \
+@@ -2161,7 +2168,7 @@ $(ROM_GENERATOR): $(CLDC_ZIP) $(Obj_Files) OopMapsSkeleton$(OBJ_SUFFIX) \
+ 	$(A)echo "linking ROM generator: $(ROM_GENERATOR)"
+ 	$(A)$(LINK) -o $@ $(Obj_Files) OopMapsSkeleton$(OBJ_SUFFIX) \
+ 	          $(GP_TABLE_OBJ) $(PCSL_LIBS) $(LINK_FLAGS)
+-	$(A)$(ROM_GENERATOR) +GenerateOopMaps
++	$(A)$(HOST_VM_RUNNER) $(ROM_GENERATOR) +GenerateOopMaps
+ 	$(A)$(MAKE) OopMaps$(OBJ_SUFFIX)
+ 	$(A)echo "re-linking ROM generator: $(ROM_GENERATOR)"
+ 	$(A)$(LINK) -o $@ $(Obj_Files) OopMaps$(OBJ_SUFFIX) $(GP_TABLE_OBJ) \
+@@ -2174,8 +2181,8 @@ $(ROM_GENERATOR): $(CLDC_ZIP) $(Obj_Files) InterpreterSkeleton$(OBJ_SUFFIX) \
+ 	$(A)$(LINK) $(Obj_Files) InterpreterSkeleton$(OBJ_SUFFIX) \
+ 		OopMapsSkeleton$(OBJ_SUFFIX) \
+ 		-o $@ $(PCSL_LIBS) $(LINK_FLAGS)
+-	$(A)$(ROM_GENERATOR) $(LOOP_GEN_ARG)
+-	$(A)$(ROM_GENERATOR) +GenerateOopMaps
++	$(A)$(HOST_VM_RUNNER) $(ROM_GENERATOR) $(LOOP_GEN_ARG)
++	$(A)$(HOST_VM_RUNNER) $(ROM_GENERATOR) +GenerateOopMaps
+ 	$(A)$(MAKE) Interpreter_$(arch)$(OBJ_SUFFIX)
+ 	$(A)$(MAKE) OopMaps$(OBJ_SUFFIX)
+ 	$(A)$(LINK) -o $@ \
+diff --git a/cldc/src/javaapi/share/com/sun/cldchi/jvm/FileDescriptor.java b/cldc/src/javaapi/share/com/sun/cldchi/jvm/FileDescriptor.java
+index 2676ca3..f01484a 100644
+--- a/cldc/src/javaapi/share/com/sun/cldchi/jvm/FileDescriptor.java
++++ b/cldc/src/javaapi/share/com/sun/cldchi/jvm/FileDescriptor.java
+@@ -30,7 +30,7 @@ package com.sun.cldchi.jvm;
+ // JarFileParser object is cleaned from the cache via GC.
+ // See JarFileParser.cpp for details.
+ class FileDescriptor {
+-    int handle;
++    long handle;
+     int valid;
+     private native void finalize();
+ }
+diff --git a/cldc/src/vm/cpu/c/AsmStubs_i386.s b/cldc/src/vm/cpu/c/AsmStubs_i386.s
+index f316c86..6267a30 100644
+--- a/cldc/src/vm/cpu/c/AsmStubs_i386.s
++++ b/cldc/src/vm/cpu/c/AsmStubs_i386.s
+@@ -25,6 +25,7 @@
+ #
+ 
+ .arch i486
++.arch .387
+ .text
+ .align 16
+ 
+diff --git a/cldc/src/vm/cpu/c/Frame_c.hpp b/cldc/src/vm/cpu/c/Frame_c.hpp
+index 369cae9..a9939b1 100644
+--- a/cldc/src/vm/cpu/c/Frame_c.hpp
++++ b/cldc/src/vm/cpu/c/Frame_c.hpp
+@@ -47,7 +47,7 @@ inline int JavaFrame__stack_bottom_pointer_offset() {
+     return arm_JavaFrame__stack_bottom_pointer_offset();
+   }
+ #endif
+-  return  -28;
++  return -7 * BytesPerWord;
+ }
+ inline int JavaFrame__stored_int_value1_offset() {
+ #if ENABLE_COMPILER
+@@ -55,7 +55,7 @@ inline int JavaFrame__stored_int_value1_offset() {
+     return arm_JavaFrame__stored_int_value1_offset();
+   }
+ #endif
+-  return  -24;
++  return -6 * BytesPerWord;
+ }
+ inline int JavaFrame__stored_int_value2_offset() {
+ #if ENABLE_COMPILER
+@@ -63,7 +63,7 @@ inline int JavaFrame__stored_int_value2_offset() {
+     return arm_JavaFrame__stored_int_value2_offset();
+   }
+ #endif
+-  return  -20;
++  return -5 * BytesPerWord;
+ }
+ inline int JavaFrame__bcp_store_offset() {
+ #if ENABLE_COMPILER
+@@ -71,7 +71,7 @@ inline int JavaFrame__bcp_store_offset() {
+     return arm_JavaFrame__bcp_store_offset();
+   }
+ #endif
+-  return  -16;
++  return -4 * BytesPerWord;
+ }
+ inline int JavaFrame__locals_pointer_offset() {
+ #if ENABLE_COMPILER
+@@ -79,7 +79,7 @@ inline int JavaFrame__locals_pointer_offset() {
+     return arm_JavaFrame__locals_pointer_offset();
+   }
+ #endif
+-  return  -12;
++  return -3 * BytesPerWord;
+ }
+ inline int JavaFrame__cpool_offset() {
+ #if ENABLE_COMPILER
+@@ -87,7 +87,7 @@ inline int JavaFrame__cpool_offset() {
+     return arm_JavaFrame__cpool_offset();
+   }
+ #endif
+-  return  -8;
++  return -2 * BytesPerWord;
+ }
+ inline int JavaFrame__method_offset() {
+ #if ENABLE_COMPILER
+@@ -95,7 +95,7 @@ inline int JavaFrame__method_offset() {
+     return arm_JavaFrame__method_offset();
+   }
+ #endif
+-  return  -4;
++  return -1 * BytesPerWord;
+ }
+ inline int JavaFrame__caller_fp_offset() {
+ #if ENABLE_COMPILER
+@@ -111,7 +111,7 @@ inline int JavaFrame__return_address_offset() {
+     return arm_JavaFrame__return_address_offset();
+   }
+ #endif
+-  return   4;
++  return 1 * BytesPerWord;
+ }
+ 
+ inline int JavaFrame__frame_desc_size() {
+@@ -129,7 +129,7 @@ inline int JavaFrame__end_of_locals_offset() {
+     return arm_JavaFrame__end_of_locals_offset();
+   }
+ #endif
+-  return   8;
++  return 2 * BytesPerWord;
+ }
+ inline int JavaFrame__empty_stack_offset() {
+ #if ENABLE_COMPILER
+@@ -137,7 +137,7 @@ inline int JavaFrame__empty_stack_offset() {
+     return arm_JavaFrame__empty_stack_offset();
+   }
+ #endif
+-  return -28;
++  return -7 * BytesPerWord;
+ }
+ 
+ 
+@@ -147,7 +147,7 @@ inline int EntryFrame__pending_activation_offset() {
+     return arm_EntryFrame__pending_activation_offset();
+   }
+ #endif
+-  return  -28;
++  return -7 * BytesPerWord;
+ }
+ inline int EntryFrame__pending_exception_offset() {
+ #if ENABLE_COMPILER
+@@ -155,7 +155,7 @@ inline int EntryFrame__pending_exception_offset() {
+     return arm_EntryFrame__pending_exception_offset();
+   }
+ #endif
+-  return  -24;
++  return -6 * BytesPerWord;
+ }
+ inline int EntryFrame__stored_obj_value_offset() {
+ #if ENABLE_COMPILER
+@@ -163,7 +163,7 @@ inline int EntryFrame__stored_obj_value_offset() {
+     return arm_EntryFrame__stored_obj_value_offset();
+   }
+ #endif
+-  return  -20;
++  return -5 * BytesPerWord;
+ }
+ inline int EntryFrame__stored_int_value2_offset() {
+ #if ENABLE_COMPILER
+@@ -171,7 +171,7 @@ inline int EntryFrame__stored_int_value2_offset() {
+     return arm_EntryFrame__stored_int_value2_offset();
+   }
+ #endif
+-  return  -16;
++  return -4 * BytesPerWord;
+ }
+ inline int EntryFrame__stored_int_value1_offset() {
+ #if ENABLE_COMPILER
+@@ -179,7 +179,7 @@ inline int EntryFrame__stored_int_value1_offset() {
+     return arm_EntryFrame__stored_int_value1_offset();
+   }
+ #endif
+-  return  -12;
++  return -3 * BytesPerWord;
+ }
+ inline int EntryFrame__stored_last_sp_offset() {
+ #if ENABLE_COMPILER
+@@ -187,7 +187,7 @@ inline int EntryFrame__stored_last_sp_offset() {
+     return arm_EntryFrame__stored_last_sp_offset();
+   }
+ #endif
+-  return -8;
++  return -2 * BytesPerWord;
+ }
+ inline int EntryFrame__stored_last_fp_offset() {
+ #if ENABLE_COMPILER
+@@ -195,7 +195,7 @@ inline int EntryFrame__stored_last_fp_offset() {
+     return arm_EntryFrame__stored_last_fp_offset();
+   }
+ #endif
+-  return -4;
++  return -1 * BytesPerWord;
+ }
+ inline int EntryFrame__real_return_address_offset() {
+ #if ENABLE_COMPILER
+@@ -211,7 +211,7 @@ inline int EntryFrame__fake_return_address_offset() {
+     return arm_EntryFrame__fake_return_address_offset();
+   }
+ #endif
+-  return +4;
++  return 1 * BytesPerWord;
+ }
+ 
+ inline int EntryFrame__frame_desc_size() {
+@@ -230,7 +230,7 @@ inline int EntryFrame__empty_stack_offset() {
+     return arm_EntryFrame__empty_stack_offset();
+   }
+ #endif
+-  return  -28;
++  return -7 * BytesPerWord;
+ }
+ 
+ #if ENABLE_EMBEDDED_CALLINFO
+@@ -241,7 +241,7 @@ inline int JavaFrame__callinfo_offset_from_return_address() {
+     return arm_JavaFrame__callinfo_offset_from_return_address();
+   }
+ #endif
+-  return -4;
++  return -1 * BytesPerWord;
+ }
+ #endif // ENABLE_EMBEDDED_CALLINFO
+ 
+@@ -252,5 +252,5 @@ inline int StackValue__stack_tag_offset() {
+     return arm_StackValue__stack_tag_offset();
+   }
+ #endif
+-  return 4;
++  return 1 * BytesPerWord;
+ }
+diff --git a/cldc/src/vm/cpu/c/Interpreter_c.cpp b/cldc/src/vm/cpu/c/Interpreter_c.cpp
+index 5c230b9..ebc24db 100644
+--- a/cldc/src/vm/cpu/c/Interpreter_c.cpp
++++ b/cldc/src/vm/cpu/c/Interpreter_c.cpp
+@@ -71,7 +71,7 @@ extern "C" {
+   // types
+   typedef void       (*func_t)();
+   typedef void       (*func1_t)(jint arg);
+-  typedef jlong      (*func2_t)(jint arg1, jint arg2);
++  typedef jlong      (*func2_t)(intptr_t arg1, intptr_t arg2);
+   typedef void       (*void_func_t)(Thread* THREAD, ...);
+   typedef jint       (*int_func_t)(Thread* THREAD, ...);
+   typedef jlong      (*long_func_t)(Thread* THREAD, ...);
+@@ -139,7 +139,7 @@ extern "C" {
+   ( ((jint)(GET_BYTE(x))    << 24)  | ((jint)(GET_BYTE(x+1)) << 16) | \
+     ((jint)(GET_BYTE(x+2))  <<  8)  | ((jint)(GET_BYTE(x+3))) )
+ #define ADVANCE(x)           (g_jpc += (x))
+-#define ADVANCE_FOR_RETURN() ADVANCE((int)(GET_FRAME(return_advance)))
++#define ADVANCE_FOR_RETURN() ADVANCE((intptr_t)(GET_FRAME(return_advance)))
+ 
+ #define NULL_CHECK(obj) \
+     if (obj == NULL) {                           \
+@@ -158,13 +158,13 @@ extern "C" {
+     }
+ 
+   // method locals accessors
+-#define GET_LOCAL(n) *((jint*)g_jlocals - (n))
+-#define GET_LOCAL_LOW(n) *((jint*)g_jlocals - (n))
+-#define GET_LOCAL_HIGH(n) *((jint*)g_jlocals - (n) - 1)
++#define GET_LOCAL(n) ps3me_slot_read_word(g_jlocals-((n))*BytesPerWord)
++#define GET_LOCAL_LOW(n) ps3me_slot_read_int(g_jlocals-((n))*BytesPerWord)
++#define GET_LOCAL_HIGH(n) ps3me_slot_read_int(g_jlocals-((n)+1)*BytesPerWord)
+ 
+-#define SET_LOCAL(n, val) *((jint*)g_jlocals - (n)) = (val)
+-#define SET_LOCAL_LOW(n, val) *((jint*)g_jlocals - (n)) = (val)
+-#define SET_LOCAL_HIGH(n, val) *((jint*)g_jlocals - (n) - 1) = (val)
++#define SET_LOCAL(n, val) ps3me_slot_write_word(g_jlocals-((n))*BytesPerWord,(ps3me_vm_slot_t)(val))
++#define SET_LOCAL_LOW(n, val) ps3me_slot_write_int(g_jlocals-((n))*BytesPerWord,(ps3me_vm_slot_t)(val))
++#define SET_LOCAL_HIGH(n, val) ps3me_slot_write_int(g_jlocals-((n)+1)*BytesPerWord,(ps3me_vm_slot_t)(val))
+ 
+   // frame accessors
+ #define FRAME_OFFSET(name) (JavaFrame::name##_offset())
+@@ -178,7 +178,7 @@ extern "C" {
+         *(address*)(g_jfp + FRAME_OFFSET(name) + offset) = (value)
+ #define GET_ENTRY_FRAME(name) *(address*)(g_jfp + ENTRY_FRAME_OFFSET(name))
+ #define SET_ENTRY_FRAME(name, value) \
+-        *(jint*)(g_jfp + ENTRY_FRAME_OFFSET(name)) = (value)
++        *(intptr_t*)(g_jfp + ENTRY_FRAME_OFFSET(name)) = (intptr_t)(value)
+ 
+   // Aliases for slots in the JavaFrame that are specific to the
+   // C interpreter loop
+@@ -203,11 +203,14 @@ extern "C" {
+ #define SET_THREAD_INT(name, value)                             \
+        *(jint*)((address)_current_thread + THREAD_OFFSET(name)) = value
+ 
++#define GET_THREAD_ADDRESS(name) (*(address*)((address)_current_thread + THREAD_OFFSET(name)))
++#define SET_THREAD_ADDRESS(name,value) (*(address*)((address)_current_thread + THREAD_OFFSET(name))=(address)(value))
+   // entry access
+ #define ENTRY_OFFSET(name) EntryActivation::name##_offset()
+ #define GET_ENTRY(entry, name)                                    \
+        *(jint*)((address)entry + ENTRY_OFFSET(name))
+ 
++#define GET_ENTRY_ADDRESS(entry,name) (*(address*)((address)entry+ENTRY_OFFSET(name)))
+   // stacklock access
+ #define STACKLOCK_OFFSET(name) StackLock::name##_offset()
+ #define GET_STACKLOCK(lock, name) *(address*)(lock + STACKLOCK_OFFSET(name))
+@@ -259,7 +262,7 @@ enum {
+   }
+ 
+   static inline jint int_from_sp(int index) {
+-    return *(jint*)arg_address_from_sp(index);
++    return ps3me_slot_read_int(arg_address_from_sp(index));
+   }
+ 
+   static inline address address_from_sp(int index) {
+@@ -268,30 +271,30 @@ enum {
+ 
+   static inline jushort first_ushort_from_cpool(address cpool, int index) {
+ #if HARDWARE_LITTLE_ENDIAN
+-    cpool += index * 4;
++    cpool += index * BytesPerWord;
+     return (*cpool | ((jushort)*(cpool + 1)) << 8);
+ #else
+-    cpool += index * 4 + 2;
++    cpool += index * BytesPerWord + 2;
+     return (((jushort)(*cpool)) << 8 | *(cpool+1));
+ #endif
+   }
+ 
+   static inline jushort second_ushort_from_cpool(address cpool, int index) {
+ #if HARDWARE_LITTLE_ENDIAN
+-    cpool += index * 4 + 2;
++    cpool += index * BytesPerWord + 2;
+     return (*cpool | ((jushort)*(cpool + 1)) << 8);
+ #else
+-    cpool += index * 4;
++    cpool += index * BytesPerWord;
+     return (((jushort)(*cpool)) << 8 | *(cpool+1));
+ #endif
+   }
+ 
+   static inline address get_class_by_id(jushort id) {
+-    return *(address*)(_class_list_base + id*4);
++    return *(address*)(_class_list_base + id*BytesPerWord);
+   }
+ 
+   static inline address get_method_from_ci(address ci, jint idx) {
+-    return *(address*)(ci + idx * 4 + ClassInfoDesc::header_size());
++    return *(address*)(ci + idx * BytesPerWord + ClassInfoDesc::header_size());
+   }
+ 
+   static inline address get_method_from_vtable(address klazz, jint idx) {
+@@ -327,7 +330,7 @@ enum {
+   }
+ 
+   static inline jint get_from_cpool(address cpool, jushort index) {
+-    return *(jint*)(cpool + index * 4);
++    return *(jint*)(cpool + index * BytesPerWord);
+   }
+ 
+   static inline void write_barrier(address addr) {
+@@ -352,39 +355,19 @@ enum {
+     return (rv + ConstantPool::base_offset());
+   }
+ 
+-  // stack accessors
+-  static inline jint POP() {
+-    jint value = *(jint*)g_jsp;
+-    g_jsp += sizeof(jint);
+-    return value;
+-  }
+-
+-  static inline address OBJ_POP() {
+-    address value = *(address*)g_jsp;
+-    g_jsp += sizeof(address);
+-    return value;
++  // PS3ME native slots: references are full-width; Java int payloads stay 32-bit.
++  static inline ps3me_vm_slot_t WORD_POP() {
++    ps3me_vm_slot_t v=ps3me_slot_read_word(g_jsp); g_jsp+=BytesPerWord; return v;
+   }
+-
+-  static inline jfloat FLOAT_POP() {
+-    jfloat value = *(jfloat*)g_jsp;
+-    g_jsp += sizeof(jfloat);
+-    return value;
+-  }
+-
+-  static inline void PUSH(jint v) {
+-    g_jsp -= sizeof(jint);
+-    *(jint*)g_jsp = v;
+-  }
+-
+-  static inline void OBJ_PUSH(address v) {
+-    g_jsp -= sizeof(address);
+-    *(address*)g_jsp = v;
+-  }
+-
+-  static inline void FLOAT_PUSH(jfloat v) {
+-    g_jsp -= sizeof(jfloat);
+-    *(jfloat*)g_jsp = v;
++  static inline void WORD_PUSH(ps3me_vm_slot_t v) {
++    g_jsp-=BytesPerWord; ps3me_slot_write_word(g_jsp,v);
+   }
++  static inline jint POP() { return (jint)WORD_POP(); }
++  static inline void PUSH(jint v) { WORD_PUSH((ps3me_vm_slot_t)(intptr_t)v); }
++  static inline address OBJ_POP() { return (address)WORD_POP(); }
++  static inline void OBJ_PUSH(address v) { WORD_PUSH((ps3me_vm_slot_t)v); }
++  static inline jfloat FLOAT_POP() { union { jint i; jfloat f; } v; v.i=POP(); return v.f; }
++  static inline void FLOAT_PUSH(jfloat f) { union { jint i; jfloat f; } v; v.f=f; PUSH(v.i); }
+ 
+   static inline jlong LONG_POP() {
+     jlong_accessor acc;
+@@ -414,8 +397,8 @@ enum {
+     PUSH(acc.words[0]);
+   }
+ 
+-  static inline jint PEEK(jint n)    {
+-    return *((jint*)g_jsp + n);
++  static inline ps3me_vm_slot_t PEEK(jint n)    {
++    return ps3me_slot_read_word(g_jsp+n*BytesPerWord);
+   }
+ 
+   static inline address OBJ_PEEK(jint n) {
+@@ -455,11 +438,11 @@ enum {
+   }
+ 
+   static inline address callee_method() {
+-    return (address)GET_THREAD_INT(obj_value);
++    return (address)GET_THREAD_ADDRESS(obj_value);
+   }
+ 
+   static inline void set_callee_method(address method) {
+-    SET_THREAD_INT(obj_value, (int)method);
++    SET_THREAD_ADDRESS(obj_value, (intptr_t)method);
+     write_barrier((address)_current_thread + Thread::obj_value_offset());
+   }
+ 
+@@ -468,22 +451,26 @@ enum {
+   }
+ 
+   static inline bool interpreter_call_vm_1(address callback, BasicType rv_type,
+-                                           jint arg1) {
++                                           intptr_t arg1) {
+     return shared_call_vm_internal(callback, NULL, rv_type, 1, arg1);
+   }
+ 
+   static inline bool interpreter_call_vm_2(address callback, BasicType rv_type,
+-                                           jint arg1, jint arg2) {
++                                           intptr_t arg1, intptr_t arg2) {
+     return shared_call_vm_internal(callback, NULL, rv_type, 2, arg1, arg2);
+   }
+ 
+   static inline void check_timer_tick() {
++#if defined(PS3ME_PPU)
++    extern void ps3me_poll_ticks_bridge();
++    ps3me_poll_ticks_bridge();
++#endif
+ #if ENABLE_PAGE_PROTECTION
+     // use g_jpc to prevent compiler from optimizing this memory access
+-    _protected_page[INTERPRETER_TIMER_TICK_SLOT] = (int)g_jpc;
++    _protected_page[INTERPRETER_TIMER_TICK_SLOT] = 1;
+ #else
+     if (_rt_timer_ticks > 0) {
+-      interpreter_call_vm_1((address)&timer_tick, T_VOID, (jint)NATIVE_ARG);
++      interpreter_call_vm_1((address)&timer_tick, T_VOID, (intptr_t)NATIVE_ARG);
+     }
+ #endif
+   }
+@@ -838,7 +825,7 @@ enum {
+     }
+ 
+     // object already locked?
+-    if ((jint)GET_NEAR(near_obj, raw_value) & 0x1) {
++    if ((*(jint*)(near_obj+JavaNear::raw_value_offset())) & 0x1) {
+       // maybe slow case
+ 
+       // thread of object's lock
+@@ -872,14 +859,9 @@ enum {
+     SET_STACKLOCK(lock, thread, (address)_current_thread);
+ 
+     // Copy the locked near object to the stack
+-    SET_STACKLOCK_OFFSET(lock, copied_near, 0,
+-                         *(address*)(near_obj + 0));
+-    SET_STACKLOCK_OFFSET(lock, copied_near, 4,
+-                         *(address*)(near_obj+4));
+-    // set lock bit
+-    jint raw_value =  *(jint*)(near_obj+8) | 0x1;
+-    SET_STACKLOCK_OFFSET(lock, copied_near, 8,
+-                         (address)raw_value);
++    address copied=lock+StackLock::copied_near_offset();
++    memcpy(copied,near_obj,sizeof(JavaNearDesc));
++    *(jint*)(copied+JavaNear::raw_value_offset()) |= 1;
+     return false;
+   }
+ 
+@@ -917,11 +899,10 @@ enum {
+       write_barrier(object);
+     }
+ 
+-    address tmp0 = GET_STACKLOCK_OFFSET(lock, copied_near,
+-                                        JavaNear::raw_value_offset());
++    jint tmp0=*(jint*)(lock+StackLock::copied_near_offset()+JavaNear::raw_value_offset());
+ 
+     // Check for waiters
+-    if (((jint)tmp0 & 2) == 0) {
++    if (((intptr_t)tmp0 & 2) == 0) {
+       return false;
+     }
+ 
+@@ -998,18 +979,14 @@ enum {
+     address lock = GET_FRAME(stack_bottom_pointer);
+ 
+     // Move expression stack top and bottom
+-    jint len = StackLock::size() + 4;
++    jint len = StackLock::size() + BytesPerWord;
+     g_jsp -= len;
+     lock -= len;
+     SET_FRAME(stack_bottom_pointer, lock);
+ 
+     // Move the expression stack contents
+     //jvm_memmove(lock, lock + len, g_jsp - lock);
+-    address tmp1 = g_jsp;
+-    while (tmp1 != lock) {
+-      *(jint*)tmp1 = *(jint*)(tmp1 + len);
+-      tmp1 += 4;
+-    }
++    jvm_memmove(g_jsp,g_jsp+len,(size_t)(lock-g_jsp));
+ 
+     return lock;
+   }
+@@ -1090,9 +1067,9 @@ enum {
+                                   BasicType return_value_type,
+                                   jint num_args,
+                                   va_list ap,
+-                                  jint &r1, jint &r2)
++                                  intptr_t &r1, intptr_t &r2)
+   {
+-    jint arg1, arg2;
++    intptr_t arg1, arg2;
+     switch (return_value_type) {
+     // IMPL_NOTE: consider about other int types, like short, byte
+     case T_INT:
+@@ -1104,12 +1081,12 @@ enum {
+           r1 = f(NATIVE_ARG);
+           break;
+         case 1:
+-          arg1 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
+           r1 = f(NATIVE_ARG, arg1);
+           break;
+         case 2:
+-          arg1 = va_arg(ap, jint);
+-          arg2 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
++          arg2 = va_arg(ap, intptr_t);
+           r1 = f(NATIVE_ARG, arg1, arg2);
+           break;
+         default:
+@@ -1127,12 +1104,12 @@ enum {
+           acc.long_value = f(NATIVE_ARG);
+           break;
+         case 1:
+-          arg1 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
+           acc.long_value = f(NATIVE_ARG, arg1);
+           break;
+         case 2:
+-          arg1 = va_arg(ap, jint);
+-          arg2 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
++          arg2 = va_arg(ap, intptr_t);
+           acc.long_value = f(NATIVE_ARG, arg1, arg2);
+           break;
+         default:
+@@ -1154,12 +1131,12 @@ enum {
+           val = f(NATIVE_ARG);
+           break;
+         case 1:
+-          arg1 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
+           val = f(NATIVE_ARG, arg1);
+           break;
+         case 2:
+-          arg1 = va_arg(ap, jint);
+-          arg2 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
++          arg2 = va_arg(ap, intptr_t);
+           val = f(NATIVE_ARG, arg1, arg2);
+           break;
+         default:
+@@ -1179,12 +1156,12 @@ enum {
+           acc.double_value = f(NATIVE_ARG);
+           break;
+         case 1:
+-          arg1 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
+           acc.double_value = f(NATIVE_ARG, arg1);
+           break;
+         case 2:
+-          arg1 = va_arg(ap, jint);
+-          arg2 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
++          arg2 = va_arg(ap, intptr_t);
+           acc.double_value = f(NATIVE_ARG, arg1, arg2);
+           break;
+         default:
+@@ -1202,16 +1179,16 @@ enum {
+         oop_func_t f = (oop_func_t)entry_point;
+         switch (num_args) {
+         case 0:
+-          r1 = (jint)f(NATIVE_ARG);
++          r1 = (intptr_t)f(NATIVE_ARG);
+           break;
+         case 1:
+-          arg1 = va_arg(ap, jint);
+-          r1 = (jint)f(NATIVE_ARG, arg1);
++          arg1 = va_arg(ap, intptr_t);
++          r1 = (intptr_t)f(NATIVE_ARG, arg1);
+           break;
+         case 2:
+-          arg1 = va_arg(ap, jint);
+-          arg2 = va_arg(ap, jint);
+-          r1 = (jint)f(NATIVE_ARG, arg1, arg2);
++          arg1 = va_arg(ap, intptr_t);
++          arg2 = va_arg(ap, intptr_t);
++          r1 = (intptr_t)f(NATIVE_ARG, arg1, arg2);
+           break;
+         default:
+           SHOULD_NOT_REACH_HERE();
+@@ -1227,12 +1204,12 @@ enum {
+           f(NATIVE_ARG);
+           break;
+         case 1:
+-          arg1 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
+           f(NATIVE_ARG, arg1);
+           break;
+         case 2:
+-          arg1 = va_arg(ap, jint);
+-          arg2 = va_arg(ap, jint);
++          arg1 = va_arg(ap, intptr_t);
++          arg2 = va_arg(ap, intptr_t);
+           f(NATIVE_ARG, arg1, arg2);
+           break;
+         default:
+@@ -1247,33 +1224,33 @@ enum {
+ 
+   static bool resume_thread() {
+     // restore values from current thread structure
+-    g_jsp = (address)GET_THREAD_INT(stack_pointer);
++    g_jsp = (address)GET_THREAD_ADDRESS(stack_pointer);
+     g_jfp = OBJ_POP();
+     // remove dummy
+     POP();
+     address return_point = OBJ_POP();
+ 
+     // check for pending activations
+-    address pentry = (address)GET_THREAD_INT(pending_entries);
++    address pentry = (address)GET_THREAD_ADDRESS(pending_entries);
+     if (pentry) {
+       if (GET_THREAD_INT(status) & THREAD_TERMINATING) {
+-        SET_THREAD_INT(pending_entries, 0);
++        SET_THREAD_ADDRESS(pending_entries, 0);
+         BREAK_INTERPRETER_LOOP(JMP_THREAD_EXIT);
+       } else {
+         jint max_len = GET_ENTRY(pentry, length);
+-        while ((pentry = (address)GET_ENTRY(pentry, next)) != NULL) {
++        while ((pentry = (address)GET_ENTRY_ADDRESS(pentry, next)) != NULL) {
+           jint len = GET_ENTRY(pentry, length);
+           if (len > max_len) {
+             max_len = len;
+           }
+         }
+-        max_len = max_len * 8 + StackLock::size() + 4;
++        max_len = max_len * 2 * BytesPerWord + StackLock::size() + BytesPerWord;
+         // stack grows to smaller addresses
+-        address new_stack_ptr = (address)GET_THREAD_INT(stack_pointer) - max_len;
++        address new_stack_ptr = (address)GET_THREAD_ADDRESS(stack_pointer) - max_len;
+         // increase stack size
+         if (new_stack_ptr < _current_stack_limit) {
+           if (interpreter_call_vm_1((address)&stack_overflow, T_VOID,
+-                                    (jint)new_stack_ptr)) {
++                                    (intptr_t)new_stack_ptr)) {
+             return true;
+           }
+         }
+@@ -1292,13 +1269,13 @@ enum {
+     }
+ 
+     // reset last java frame in thread
+-    SET_THREAD_INT(last_java_sp, 0);
+-    SET_THREAD_INT(last_java_fp, 0);
++    SET_THREAD_ADDRESS(last_java_sp, 0);
++    SET_THREAD_ADDRESS(last_java_fp, 0);
+ 
+     if (CURRENT_HAS_PENDING_EXCEPTION) {
+       OopDesc* exception =_current_pending_exception;
+       _current_pending_exception = NULL;
+-      shared_call_vm_internal(NULL, NULL, T_ILLEGAL, 1, (jint)exception);
++      shared_call_vm_internal(NULL, NULL, T_ILLEGAL, 1, (intptr_t)exception);
+       return true;
+     }
+     return false;
+@@ -1311,8 +1288,8 @@ enum {
+                                       ...)
+   {
+     // Save last java stack pointer and last java frame pointer in thread
+-    SET_THREAD_INT(last_java_fp, (jint)g_jfp);
+-    SET_THREAD_INT(last_java_sp, (jint)g_jsp);
++    SET_THREAD_ADDRESS(last_java_fp, (intptr_t)g_jfp);
++    SET_THREAD_ADDRESS(last_java_sp, (intptr_t)g_jsp);
+     // sync up other globals
+     SET_FRAME(bcp_store, g_jpc);
+     SET_FRAME(locals_pointer, g_jlocals);
+@@ -1332,24 +1309,24 @@ enum {
+     PUSH(0xDEADBEEF);
+     // fp
+     OBJ_PUSH(g_jfp);
+-    SET_THREAD_INT(stack_pointer, (jint)g_jsp);
++    SET_THREAD_ADDRESS(stack_pointer, (intptr_t)g_jsp);
+ 
+     bool is_oop = (stack_type_for(return_value_type) == T_OBJECT);
+ 
+-    jint r1 = 0, r2 = 0;
++    intptr_t r1 = 0, r2 = 0;
+     va_list ap;
+     va_start(ap, num_args);
+ 
+     if (return_value_type == T_ILLEGAL) {
+       GUARANTEE(num_args == 1, "Only 1 argument allowed here");
+-      OopDesc* raw_exc =  (OopDesc*)va_arg(ap, jint);
++      OopDesc* raw_exc =  (OopDesc*)va_arg(ap, intptr_t);
+ 
+       // this call also fills in last_java_fp and last_java_sp in
+       // current thread to the frame of handler
+-      r1 = (jint)find_exception_frame(NATIVE_ARG, raw_exc);
++      r1 = (intptr_t)find_exception_frame(NATIVE_ARG, raw_exc);
+ 
+-      g_jsp = (address)GET_THREAD_INT(last_java_sp);
+-      g_jfp = (address)GET_THREAD_INT(last_java_fp);
++      g_jsp = (address)GET_THREAD_ADDRESS(last_java_sp);
++      g_jfp = (address)GET_THREAD_ADDRESS(last_java_fp);
+ 
+       // A return value of zero means the initial entry frame
+       if (r1 == 0) {
+@@ -1366,7 +1343,7 @@ enum {
+         PUSH(0);
+         PUSH(0xDEADBEEF);
+         OBJ_PUSH(g_jfp);
+-        SET_THREAD_INT(stack_pointer, (jint)g_jsp);
++        SET_THREAD_ADDRESS(stack_pointer, (intptr_t)g_jsp);
+       }
+     } else {
+       // Call the native entry
+@@ -1378,7 +1355,7 @@ enum {
+ 
+     // save the return values in the thread
+     if (is_oop) {
+-      SET_THREAD_INT(obj_value, r1);
++      SET_THREAD_ADDRESS(obj_value, r1);
+       write_barrier((address)_current_thread + Thread::obj_value_offset());
+     } else {
+       SET_THREAD_INT(int1_value, r1);
+@@ -1395,28 +1372,28 @@ enum {
+     g_jfp = g_jsp - EntryFrame::empty_stack_offset();
+ 
+     // stored data in frame
+-    SET_ENTRY_FRAME(pending_exception,   (jint)_current_pending_exception);
+-    SET_ENTRY_FRAME(stored_last_sp,      GET_THREAD_INT(last_java_sp));
+-    SET_ENTRY_FRAME(stored_last_fp,      GET_THREAD_INT(last_java_fp));
++    SET_ENTRY_FRAME(pending_exception,   (intptr_t)_current_pending_exception);
++    SET_ENTRY_FRAME(stored_last_sp,      GET_THREAD_ADDRESS(last_java_sp));
++    SET_ENTRY_FRAME(stored_last_fp,      GET_THREAD_ADDRESS(last_java_fp));
+     SET_ENTRY_FRAME(fake_return_address, EntryFrame::FakeReturnAddress);
+-    SET_ENTRY_FRAME(real_return_address, (jint)return_point);
+-    SET_ENTRY_FRAME(stored_obj_value,    GET_THREAD_INT(obj_value));
++    SET_ENTRY_FRAME(real_return_address, (intptr_t)return_point);
++    SET_ENTRY_FRAME(stored_obj_value,    GET_THREAD_ADDRESS(obj_value));
+     SET_ENTRY_FRAME(stored_int_value1,   GET_THREAD_INT(int1_value));
+     SET_ENTRY_FRAME(stored_int_value2,   GET_THREAD_INT(int2_value));
+ 
+     // reset last java frame in thread
+-    SET_THREAD_INT(last_java_sp, 0);
+-    SET_THREAD_INT(last_java_fp, 0);
++    SET_THREAD_ADDRESS(last_java_sp, 0);
++    SET_THREAD_ADDRESS(last_java_fp, 0);
+ 
+     // Get the pending exception and (first) pending activation from the thread
+-    address pending_entry = (address)GET_THREAD_INT(pending_entries);
++    address pending_entry = (address)GET_THREAD_ADDRESS(pending_entries);
+ 
+     // clear the pending activation and pending exception thread field
+-    SET_THREAD_INT(pending_entries, 0);
++    SET_THREAD_ADDRESS(pending_entries, 0);
+ 
+     _current_pending_exception = 0;
+ 
+-    jint entry = GET_ENTRY(pending_entry, next);
++    address entry = GET_ENTRY_ADDRESS(pending_entry, next);
+     jint len = GET_ENTRY(pending_entry, length);
+ 
+     // save next entry
+@@ -1426,11 +1403,13 @@ enum {
+ 
+     // put values on stack, note skipping of tags
+     for (int i = 0; i < len; i++) {
+-      PUSH(*((jint*)header + 2 * i));
++      address value=header+2*i*BytesPerWord;
++      if(*(Tag*)(value+BytesPerWord)==obj_tag) OBJ_PUSH(*(address*)value);
++      else PUSH(*(jint*)value);
+     }
+ 
+     // find Java method
+-    address method = (address)GET_ENTRY(pending_entry, method);
++    address method = (address)GET_ENTRY_ADDRESS(pending_entry, method);
+     // invoke it
+     invoke_java_method(method, 0);
+   }
+@@ -1466,10 +1445,10 @@ enum {
+ 
+     // Create a fake bcp with a new flag set.
+     g_jpc =  (address)
+-      (((juint)method + Method::base_offset()) + JavaFrame::overflow_frame_flag);
++      (((uintptr_t)method + Method::base_offset()) + JavaFrame::overflow_frame_flag);
+ 
+     if (interpreter_call_vm_1((address)stack_overflow, T_VOID,
+-                              (jint)new_stack_ptr)) {
++                              (intptr_t)new_stack_ptr)) {
+       return true;
+     }
+ 
+@@ -1482,14 +1461,14 @@ enum {
+   // This function is to be used with ENABLE_PAGE_PROTECTION=true
+   void interpreter_timer_tick() {
+     // Save current state like shared_call_vm does
+-    SET_THREAD_INT(last_java_fp, (jint)g_jfp);
+-    SET_THREAD_INT(last_java_sp, (jint)g_jsp);
++    SET_THREAD_ADDRESS(last_java_fp, (intptr_t)g_jfp);
++    SET_THREAD_ADDRESS(last_java_sp, (intptr_t)g_jsp);
+     SET_FRAME(bcp_store, g_jpc);
+     SET_FRAME(locals_pointer, g_jlocals);
+     OBJ_PUSH(NULL);
+     PUSH(0xDEADBEEF);
+     OBJ_PUSH(g_jfp);
+-    SET_THREAD_INT(stack_pointer, (jint)g_jsp);
++    SET_THREAD_ADDRESS(stack_pointer, (intptr_t)g_jsp);
+     // Call the native routine
+     timer_tick();
+     switch_thread(NATIVE_ARG);
+@@ -1528,13 +1507,13 @@ enum {
+     address native_ptr = get_quick_native(method);
+ 
+     _jvm_in_quick_native_method = 1;
+-    jint r1, r2;
++    intptr_t r1, r2;
+     invoke_native_entry(native_ptr, return_type, 0, NULL, r1, r2);
+     _jvm_in_quick_native_method = 0;
+ 
+     if (_jvm_quick_native_exception != NULL) {
+       interpreter_call_vm_2((address)&quick_native_throw, T_INT,
+-        (jint)_jvm_quick_native_exception, 0);
++        (intptr_t)_jvm_quick_native_exception, 0);
+       _jvm_quick_native_exception = NULL;
+       return;
+     }
+@@ -1543,9 +1522,11 @@ enum {
+     g_jsp +=  num_params * BytesPerStackElement;
+ 
+     switch (return_type) {
+-    case T_INT:
+     case T_OBJECT:
+-      PUSH(r1);
++      OBJ_PUSH((address)r1);
++      break;
++    case T_INT:
++      PUSH((jint)r1);
+       break;
+     case T_VOID:
+       // do nothing
+@@ -1614,10 +1595,10 @@ enum {
+       return false;
+     }
+     clazz = get_class_by_id(id);
+-    if (interpreter_call_vm_1((address)task_barrier, T_OBJECT, (jint)clazz)) {
++    if (interpreter_call_vm_1((address)task_barrier, T_OBJECT, (intptr_t)clazz)) {
+       return true;
+     }
+-    task_mirror = (address)GET_THREAD_INT(obj_value);
++    task_mirror = (address)GET_THREAD_ADDRESS(obj_value);
+     GUARANTEE(task_mirror != 0, "Task mirror is zero");
+     real_mirror = get_real_mirror(task_mirror);
+     return false;
+@@ -1632,7 +1613,7 @@ enum {
+       return true;
+     }
+     if (status & JavaClassObj::IN_PROGRESS) {
+-      address this_thread = (address)GET_THREAD_INT(thread_obj);
++      address this_thread = (address)GET_THREAD_ADDRESS(thread_obj);
+       address init_thread = *(address*)(java_mirror +
+                                         JavaClassObj::thread_offset());
+       return this_thread == init_thread;
+@@ -1653,7 +1634,7 @@ enum {
+       num_params * BytesPerStackElement + JavaFrame::arg_offset_from_sp(-1);
+ 
+     // stack overflow check
+-    address new_stack_ptr =  g_jsp - get_max_stack(method) * 4;
++    address new_stack_ptr =  g_jsp - get_max_stack(method) * BytesPerWord;
+ 
+     if (new_stack_ptr < _current_stack_limit) {
+       if (interpreter_grow_stack_internal(method, new_stack_ptr)) {
+@@ -1773,7 +1754,7 @@ enum {
+     OBJ_PUSH(obj);
+     if (!interpreter_call_vm((address)&array_store_type_check, T_VOID)) {
+       // clear arguments from stack
+-      g_jsp += 3 * sizeof(jint);
++      g_jsp += 3 * BytesPerWord;
+       return true;
+     }
+     return false;
+@@ -1803,7 +1784,10 @@ enum {
+   }
+ 
+   void shared_fast_getint_accessor() {
+-    PUSH(*(jint*)(OBJ_POP() + get_fast_accessor_offset()));
++    address field=OBJ_POP()+get_fast_accessor_offset();
++    BasicType type=(BasicType)*(jushort*)(callee_method()+Method::fast_accessor_type_offset());
++    if(type==T_OBJECT || type==T_ARRAY) OBJ_PUSH(*(address*)field);
++    else PUSH(*(jint*)field);
+     ADVANCE_FOR_RETURN();
+   }
+ 
+@@ -1836,7 +1820,10 @@ enum {
+   void shared_fast_getint_static_accessor() {
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    PUSH(*(jint*)(obj + get_fast_accessor_offset()));
++    address field=obj+get_fast_accessor_offset();
++    BasicType type=(BasicType)*(jushort*)(callee_method()+Method::fast_accessor_type_offset());
++    if(type==T_OBJECT || type==T_ARRAY) OBJ_PUSH(*(address*)field);
++    else PUSH(*(jint*)field);
+     ADVANCE_FOR_RETURN();
+   }
+ 
+@@ -1974,8 +1961,8 @@ enum {
+       break;
+     case T_OBJECT  :
+       {
+-        jint v = GET_ARRAY_ELEMENT(ref, idx, jint);
+-        PUSH(v);
++        address v = GET_ARRAY_ELEMENT(ref, idx, address);
++        OBJ_PUSH(v);
+       }
+       break;
+     default        :
+@@ -2031,7 +2018,7 @@ enum {
+         BOUNDS_CHECK(ref, idx);
+         if (!type_check(ref, val, idx)) return false;
+ 
+-        write_barrier(ref + Array::base_offset() + idx * sizeof(jint));
++        write_barrier(ref + Array::base_offset() + idx * BytesPerWord);
+         SET_ARRAY_ELEMENT(ref, idx, address, val);
+       }
+       break;
+@@ -2070,7 +2057,7 @@ enum {
+   }
+ 
+   static inline void iload(int n) {
+-    PUSH(GET_LOCAL(n));
++    PUSH(GET_LOCAL_LOW(n));
+   }
+ 
+   static inline void lload(int n) {
+@@ -2085,7 +2072,7 @@ enum {
+   }
+ 
+   static inline void aload(int n) {
+-    PUSH(GET_LOCAL(n));
++    WORD_PUSH(GET_LOCAL(n));
+   }
+ 
+   static inline void dload(int n) {
+@@ -2110,7 +2097,7 @@ enum {
+   }
+ 
+   static inline void astore(int n) {
+-    SET_LOCAL(n, POP());
++    SET_LOCAL(n, WORD_POP());
+   }
+ 
+   static inline void dstore(int n) {
+@@ -2139,16 +2126,16 @@ enum {
+     address obj = get_mirror_by_id(class_id);
+     if (obj == get_cib_marker()) {
+       address klass = get_class_by_id(class_id);
+-      if (interpreter_call_vm_1((address)task_barrier, T_OBJECT, (jint)klass)) {
++      if (interpreter_call_vm_1((address)task_barrier, T_OBJECT, (intptr_t)klass)) {
+         return NULL;
+       }
+-      obj = (address)GET_THREAD_INT(obj_value);
++      obj = (address)GET_THREAD_ADDRESS(obj_value);
+       cpool = GET_FRAME(cpool);
+     }
+ #else
+     address obj = get_class_by_id(class_id);
+     if (!is_initialized_class(obj)) {
+-      if (interpreter_call_vm_1((address)initialize_class, T_VOID, (jint)obj)) {
++      if (interpreter_call_vm_1((address)initialize_class, T_VOID, (intptr_t)obj)) {
+         return NULL;
+       }
+       GUARANTEE(cpool == GET_FRAME(cpool), "No GC should have happened");
+@@ -2165,10 +2152,12 @@ enum {
+     }
+ 
+     switch(type) {
+-    case T_OBJECT :
+-    case T_INT    :
+-    case T_FLOAT  :
+-      rv.int_val =  int_from_sp(0);
++    case T_OBJECT:
++      rv.object_val=address_from_sp(0);
++      break;
++    case T_INT:
++    case T_FLOAT:
++      rv.int_val=int_from_sp(0);
+       break;
+     case T_LONG   :
+       rv.long_val = jlong_from_low_high(int_from_sp(0), int_from_sp(1));
+@@ -2195,7 +2184,7 @@ enum {
+     if (GET_FRAME(return_address) == (address)EntryFrame::FakeReturnAddress) {
+       address pending_entry = GET_ENTRY_FRAME(pending_activation);
+       if (pending_entry != NULL) {
+-        jint entry = GET_ENTRY(pending_entry, next);
++        address entry = GET_ENTRY_ADDRESS(pending_entry, next);
+         jint len = GET_ENTRY(pending_entry, length);
+         // save next entry
+         SET_ENTRY_FRAME(pending_activation, entry);
+@@ -2203,10 +2192,12 @@ enum {
+         address header = pending_entry  + EntryActivationDesc::header_size();
+         // put values on stack, note skipping of tags
+         for (int i = 0; i < len; i++) {
+-          PUSH(*((jint*)header + 2 * i));
++          address value=header+2*i*BytesPerWord;
++      if(*(Tag*)(value+BytesPerWord)==obj_tag) OBJ_PUSH(*(address*)value);
++      else PUSH(*(jint*)value);
+         }
+         // find Java method
+-        address method = (address)GET_ENTRY(pending_entry, method);
++        address method = (address)GET_ENTRY_ADDRESS(pending_entry, method);
+         // invoke it
+         invoke_java_method(method, 0);
+         return;
+@@ -2216,10 +2207,10 @@ enum {
+       _current_pending_exception =
+         (OopDesc*)GET_ENTRY_FRAME(pending_exception);
+ 
+-      SET_THREAD_INT(obj_value, (jint)GET_ENTRY_FRAME(stored_obj_value));
++      SET_THREAD_ADDRESS(obj_value, (intptr_t)GET_ENTRY_FRAME(stored_obj_value));
+       // IMPL_NOTE: write_barrier((address)_current_thread + Thread::obj_value_offset());
+-      SET_THREAD_INT(int1_value, (jint)GET_ENTRY_FRAME(stored_int_value1));
+-      SET_THREAD_INT(int2_value, (jint)GET_ENTRY_FRAME(stored_int_value2));
++      SET_THREAD_INT(int1_value, (jint)(intptr_t)GET_ENTRY_FRAME(stored_int_value1));
++      SET_THREAD_INT(int2_value, (jint)(intptr_t)GET_ENTRY_FRAME(stored_int_value2));
+ 
+       func_t stored_return_point = (func_t)GET_ENTRY_FRAME(real_return_address);
+ 
+@@ -2229,8 +2220,8 @@ enum {
+       g_jsp = g_jfp +
+         EntryFrame::empty_stack_offset() + EntryFrame::frame_desc_size();
+       g_jfp = old_jfp;
+-      SET_THREAD_INT(last_java_sp, (jint)old_jsp);
+-      SET_THREAD_INT(last_java_fp, (jint)old_jfp);
++      SET_THREAD_ADDRESS(last_java_sp, (intptr_t)old_jsp);
++      SET_THREAD_ADDRESS(last_java_fp, (intptr_t)old_jfp);
+ 
+       if (g_jfp == NULL) {
+         BREAK_INTERPRETER_LOOP(JMP_THREAD_EXIT);
+@@ -2242,7 +2233,7 @@ enum {
+       if (CURRENT_HAS_PENDING_EXCEPTION) {
+         OopDesc* exception =_current_pending_exception;
+         _current_pending_exception = NULL;
+-        shared_call_vm_internal(NULL, NULL, T_ILLEGAL, 1, (jint)exception);
++        shared_call_vm_internal(NULL, NULL, T_ILLEGAL, 1, (intptr_t)exception);
+         return;
+       }
+ 
+@@ -2252,7 +2243,7 @@ enum {
+       return;
+     }
+     // restore previous JPC and locals
+-    g_jpc = GET_FRAME(bcp_store) + (int)(GET_FRAME(return_advance));
++    g_jpc = GET_FRAME(bcp_store) + (intptr_t)(GET_FRAME(return_advance));
+     g_jlocals = GET_FRAME(locals_pointer);
+ 
+     switch(type) {
+@@ -2276,13 +2267,15 @@ enum {
+     case T_FLOAT  :
+     case T_OBJECT :
+       {
+-        jint val = get_from_cpool(cpool, idx);
+-        PUSH(val);
++        ConstantPool::Raw cp=(OopDesc*)(cpool-ConstantPool::base_offset());
++        if(cp().tag_at(idx).is_oop()) OBJ_PUSH(*(address*)(cpool+idx*BytesPerWord));
++        else PUSH(get_from_cpool(cpool,idx));
+       }
+       break;
+     case T_LONG   :
+       {
+-        jlong val = long_from_addr(cpool + idx * 4);
++        ConstantPool::Raw cp=(OopDesc*)(cpool-ConstantPool::base_offset());
++        jlong val=cp().wide_bits_at(idx,cp().tag_at(idx).is_double() ? MSW_FIRST_FOR_DOUBLE : MSW_FIRST_FOR_LONG);
+         LONG_PUSH(val);
+       }
+       break;
+@@ -2309,7 +2302,7 @@ enum {
+ 
+     if (has_fixed_target_method) {
+       // Get method from resolved constant pool entry
+-      method = (address)get_from_cpool(cpool, index);
++      method = *(address*)(cpool+index*BytesPerWord);
+       if (must_do_null_check) {
+         // Get the number of parameters from the method
+         jushort num_params = get_num_params(method);
+@@ -2323,16 +2316,16 @@ enum {
+         address mirror = get_mirror_by_id(class_id);
+         if (mirror == get_cib_marker()) {
+           address klass = get_class_by_id(class_id);
+-          if (interpreter_call_vm_1((address)task_barrier, T_OBJECT, (jint)klass)) {
++          if (interpreter_call_vm_1((address)task_barrier, T_OBJECT, (intptr_t)klass)) {
+             return;
+           }
+           cpool = GET_FRAME(cpool);
+-          method = (address)get_from_cpool(cpool, index);
++          method = *(address*)(cpool+index*BytesPerWord);
+         }
+ #else
+         address klass = get_class_by_id(class_id);
+         if (!is_initialized_class(klass)) {
+-          if (interpreter_call_vm_1((address)initialize_class, T_VOID, (jint)klass)) {
++          if (interpreter_call_vm_1((address)initialize_class, T_VOID, (intptr_t)klass)) {
+             return;
+           }
+           GUARANTEE(cpool == GET_FRAME(cpool), "No GC should have happened");
+@@ -2887,84 +2880,84 @@ enum {
+     }
+   BYTECODE_IMPL_END
+ 
+-  BYTECODE_IMPL(pop)
+-    POP();
++  BYTECODE_IMPL(pop) // PS3ME reference stack shuffles
++    WORD_POP();
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(pop2)
+-    POP();
+-    POP();
++    WORD_POP();
++    WORD_POP();
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(dup)
+-    jint v = PEEK(0);
+-    PUSH(v);
++    ps3me_vm_slot_t v = PEEK(0);
++    WORD_PUSH(v);
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(dup_x1)
+-    jint val1 = POP();
+-    jint val2 = POP();
+-    PUSH(val1);
+-    PUSH(val2);
+-    PUSH(val1);
++    ps3me_vm_slot_t val1 = WORD_POP();
++    ps3me_vm_slot_t val2 = WORD_POP();
++    WORD_PUSH(val1);
++    WORD_PUSH(val2);
++    WORD_PUSH(val1);
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(dup_x2)
+-    jint val1 = POP();
+-    jint val2 = POP();
+-    jint val3 = POP();
+-    PUSH(val1);
+-    PUSH(val3);
+-    PUSH(val2);
+-    PUSH(val1);
++    ps3me_vm_slot_t val1 = WORD_POP();
++    ps3me_vm_slot_t val2 = WORD_POP();
++    ps3me_vm_slot_t val3 = WORD_POP();
++    WORD_PUSH(val1);
++    WORD_PUSH(val3);
++    WORD_PUSH(val2);
++    WORD_PUSH(val1);
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(dup2)
+-    jint val1 = POP();
+-    jint val2 = POP();
+-    PUSH(val2);
+-    PUSH(val1);
+-    PUSH(val2);
+-    PUSH(val1);
++    ps3me_vm_slot_t val1 = WORD_POP();
++    ps3me_vm_slot_t val2 = WORD_POP();
++    WORD_PUSH(val2);
++    WORD_PUSH(val1);
++    WORD_PUSH(val2);
++    WORD_PUSH(val1);
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(dup2_x1)
+-    jint val1 = POP();
+-    jint val2 = POP();
+-    jint val3 = POP();
+-    PUSH(val2);
+-    PUSH(val1);
+-    PUSH(val3);
+-    PUSH(val2);
+-    PUSH(val1);
++    ps3me_vm_slot_t val1 = WORD_POP();
++    ps3me_vm_slot_t val2 = WORD_POP();
++    ps3me_vm_slot_t val3 = WORD_POP();
++    WORD_PUSH(val2);
++    WORD_PUSH(val1);
++    WORD_PUSH(val3);
++    WORD_PUSH(val2);
++    WORD_PUSH(val1);
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(dup2_x2)
+-    jint val1 = POP();
+-    jint val2 = POP();
+-    jint val3 = POP();
+-    jint val4 = POP();
+-    PUSH(val2);
+-    PUSH(val1);
+-    PUSH(val4);
+-    PUSH(val3);
+-    PUSH(val2);
+-    PUSH(val1);
++    ps3me_vm_slot_t val1 = WORD_POP();
++    ps3me_vm_slot_t val2 = WORD_POP();
++    ps3me_vm_slot_t val3 = WORD_POP();
++    ps3me_vm_slot_t val4 = WORD_POP();
++    WORD_PUSH(val2);
++    WORD_PUSH(val1);
++    WORD_PUSH(val4);
++    WORD_PUSH(val3);
++    WORD_PUSH(val2);
++    WORD_PUSH(val1);
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(swap)
+-    jint val1 = POP();
+-    jint val2 = POP();
+-    PUSH(val1);
+-    PUSH(val2);
++    ps3me_vm_slot_t val1 = WORD_POP();
++    ps3me_vm_slot_t val2 = WORD_POP();
++    WORD_PUSH(val1);
++    WORD_PUSH(val2);
+     ADVANCE(1);
+   BYTECODE_IMPL_END
+ 
+@@ -3481,7 +3474,7 @@ enum {
+     jint index = POP();
+     // method entry point is 4-byte aligned, jpc points to
+     // tableswitch bytecode
+-    address aligned_jpc = (address)((jint)(g_jpc + 1 + 3) & ~3);
++    address aligned_jpc = (address)((uintptr_t)(g_jpc + 1 + 3) & ~3);
+     // get default target
+     jint    target = int_from_addr(aligned_jpc);
+     jint    low    = int_from_addr(aligned_jpc + 4);
+@@ -3497,7 +3490,7 @@ enum {
+     jint key = POP();
+     // method entry point is 4-byte aligned, jpc points to
+     // lookupswitch bytecode
+-    address aligned_jpc = (address)((jint)(g_jpc + 1 + 3) & ~3);
++    address aligned_jpc = (address)((uintptr_t)(g_jpc + 1 + 3) & ~3);
+     // get default target
+     jint    target = int_from_addr(aligned_jpc);
+     jint    npairs = int_from_addr(aligned_jpc + 4);
+@@ -3571,7 +3564,7 @@ enum {
+   BYTECODE_IMPL_END
+ 
+   static void new_return_point() {
+-    PUSH(GET_THREAD_INT(obj_value));
++    OBJ_PUSH(GET_THREAD_ADDRESS(obj_value));
+     ADVANCE(3);
+   }
+ 
+@@ -3589,7 +3582,7 @@ enum {
+     // in interpreter
+     if (!interpreter_call_vm_2((address)&_newarray, T_ARRAY, type, len)) {
+       // put returned value on stack
+-      PUSH(GET_THREAD_INT(obj_value));
++      OBJ_PUSH(GET_THREAD_ADDRESS(obj_value));
+       ADVANCE(2);
+     }
+   BYTECODE_IMPL_END
+@@ -3599,7 +3592,7 @@ enum {
+       // remove length from stack
+       POP();
+       // put returned value on stack
+-      PUSH(GET_THREAD_INT(obj_value));
++      OBJ_PUSH(GET_THREAD_ADDRESS(obj_value));
+       ADVANCE(3);
+     }
+   BYTECODE_IMPL_END
+@@ -3672,7 +3665,7 @@ enum {
+       // remove parameters
+       g_jsp += GET_BYTE(2) * BytesPerStackElement;
+       // put returned value on stack
+-      PUSH(GET_THREAD_INT(obj_value));
++      OBJ_PUSH(GET_THREAD_ADDRESS(obj_value));
+       ADVANCE(4);
+     }
+   BYTECODE_IMPL_END
+@@ -3741,7 +3734,10 @@ enum {
+   BYTECODE_IMPL(fast_1_getstatic)
+     address addr = get_static_field_offset();
+     if (addr != NULL) {
+-      PUSH(*(jint*)addr);
++      ConstantPool::Raw cp=(OopDesc*)(GET_FRAME(cpool)-ConstantPool::base_offset());
++      BasicType type=ConstantTag::resolved_field_type(cp().tag_value_at(GET_SHORT(0)));
++      if(type==T_OBJECT || type==T_ARRAY) OBJ_PUSH(*(address*)addr);
++      else PUSH(*(jint*)addr);
+       ADVANCE(3);
+     }
+   BYTECODE_IMPL_END
+@@ -3794,7 +3790,7 @@ enum {
+     jint value = POP();
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    *(jint*)(obj + GET_SHORT_NATIVE(0) * 4) = value;
++    *(jint*)(obj + GET_SHORT_NATIVE(0) * BytesPerWord) = value;
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+@@ -3802,7 +3798,7 @@ enum {
+     jlong value = LONG_POP();
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    long_to_addr(obj + GET_SHORT_NATIVE(0) * 4, value);
++    long_to_addr(obj + GET_SHORT_NATIVE(0) * BytesPerWord, value);
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+@@ -3810,7 +3806,7 @@ enum {
+     jfloat value = FLOAT_POP();
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    *(jfloat*)(obj + GET_SHORT_NATIVE(0) * 4) = value;
++    *(jfloat*)(obj + GET_SHORT_NATIVE(0) * BytesPerWord) = value;
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+@@ -3818,7 +3814,7 @@ enum {
+     jdouble value = DOUBLE_POP();
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    double_to_addr(obj + GET_SHORT_NATIVE(0) * 4, value);
++    double_to_addr(obj + GET_SHORT_NATIVE(0) * BytesPerWord, value);
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+@@ -3826,7 +3822,7 @@ enum {
+     address value = OBJ_POP();
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    obj += GET_SHORT_NATIVE(0) * 4;
++    obj += GET_SHORT_NATIVE(0) * BytesPerWord;
+     *(address*)obj = value;
+     write_barrier(obj);
+     ADVANCE(3);
+@@ -3856,35 +3852,35 @@ enum {
+   BYTECODE_IMPL(fast_igetfield)
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    PUSH(*(jint*)(obj + GET_SHORT_NATIVE(0) * 4));
++    PUSH(*(jint*)(obj + GET_SHORT_NATIVE(0) * BytesPerWord));
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(fast_lgetfield)
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    LONG_PUSH(long_from_addr(obj + GET_SHORT_NATIVE(0) * 4));
++    LONG_PUSH(long_from_addr(obj + GET_SHORT_NATIVE(0) * BytesPerWord));
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(fast_fgetfield)
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    FLOAT_PUSH(*(jfloat*)(obj + GET_SHORT_NATIVE(0) * 4));
++    FLOAT_PUSH(*(jfloat*)(obj + GET_SHORT_NATIVE(0) * BytesPerWord));
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(fast_dgetfield)
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    DOUBLE_PUSH(double_from_addr(obj + GET_SHORT_NATIVE(0) * 4));
++    DOUBLE_PUSH(double_from_addr(obj + GET_SHORT_NATIVE(0) * BytesPerWord));
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(fast_agetfield)
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    OBJ_PUSH(*(address*)(obj + GET_SHORT_NATIVE(0) * 4));
++    OBJ_PUSH(*(address*)(obj + GET_SHORT_NATIVE(0) * BytesPerWord));
+     ADVANCE(3);
+   BYTECODE_IMPL_END
+ 
+@@ -3927,10 +3923,10 @@ enum {
+     jushort vlength = *(jushort*)(ci + ClassInfo::vtable_length_offset());
+     jint ilength = *(jushort*)(ci + ClassInfo::itable_length_offset());
+     // start of itable
+-    address itable = ci + ClassInfoDesc::header_size() + vlength * 4;
++    address itable = ci + ClassInfoDesc::header_size() + vlength * BytesPerWord;
+ 
+     // Lookup interface method table by linear search
+-    for (itable = ci + ClassInfoDesc::header_size() + vlength*4; ; ilength--){
++    for (itable = ci + ClassInfoDesc::header_size() + vlength*BytesPerWord; ; ilength--){
+       // IMPL_NOTE: or < 0
+       if (ilength <= 0) {
+        interpreter_throw_IncompatibleClassChangeError();
+@@ -3947,7 +3943,7 @@ enum {
+ 
+     // method table of the receiver class
+     address table = int_from_addr(itable + 4) + ci;
+-    address method = *(address*)(table + method_index * 4);
++    address method = *(address*)(table + method_index * BytesPerWord);
+     invoke_java_method(method, 5);
+   BYTECODE_IMPL_END
+ 
+@@ -3995,7 +3991,7 @@ enum {
+         break;
+ 
+       case T_OBJECT:
+-        PUSH(GET_THREAD_INT(obj_value));
++        OBJ_PUSH(GET_THREAD_ADDRESS(obj_value));
+         bc_impl_areturn();
+         break;
+ 
+@@ -4011,7 +4007,7 @@ enum {
+ 
+     // Set space for fake parameter for static method (KNI-ism)
+     if (get_access_flags(method) & JVM_ACC_STATIC) {
+-      locals += 4;
++      locals += BytesPerStackElement;
+     }
+     _kni_parameter_base = locals;
+ 
+@@ -4076,14 +4072,14 @@ enum {
+   BYTECODE_IMPL(fast_igetfield_1)
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    PUSH(*(jint*)(obj + GET_BYTE(0) * 4));
++    PUSH(*(jint*)(obj + GET_BYTE(0) * BytesPerWord));
+     ADVANCE(2);
+   BYTECODE_IMPL_END
+ 
+   BYTECODE_IMPL(fast_agetfield_1)
+     address obj = OBJ_POP();
+     NULL_CHECK(obj);
+-    OBJ_PUSH(*(address*)(obj + GET_BYTE(0) * 4));
++    OBJ_PUSH(*(address*)(obj + GET_BYTE(0) * BytesPerWord));
+     ADVANCE(2);
+   BYTECODE_IMPL_END
+ 
+@@ -4596,7 +4592,7 @@ typedef struct JavaFrameDebug {
+ } JavaFrameDebug;
+ 
+ JavaFrameDebug * jfp_debug() {
+-  return (JavaFrameDebug*)( ((int)g_jfp) +
++  return (JavaFrameDebug*)( ((uintptr_t)g_jfp) +
+                             JavaFrame::stack_bottom_pointer_offset() );
+ }
+ 
+@@ -4681,16 +4677,16 @@ bool update_java_pointers() {
+   if (bci < 0 || bci >= 65536) {
+     return false;
+   }
+-  SET_THREAD_INT(last_java_fp, (jint)g_jfp);
+-  SET_THREAD_INT(last_java_sp, (jint)g_jsp);
++  SET_THREAD_ADDRESS(last_java_fp, (intptr_t)g_jfp);
++  SET_THREAD_ADDRESS(last_java_sp, (intptr_t)g_jsp);
+   SET_FRAME(bcp_store, g_jpc);
+   SET_FRAME(locals_pointer, g_jlocals);
+   return true;
+ }
+ 
+ void revert_java_pointers() {
+-  SET_THREAD_INT(last_java_fp, 0);
+-  SET_THREAD_INT(last_java_sp, 0);
++  SET_THREAD_ADDRESS(last_java_fp, 0);
++  SET_THREAD_ADDRESS(last_java_sp, 0);
+ }
+ #endif
+ 
+@@ -4714,3 +4710,8 @@ unsigned char _dummy2[PROTECTED_PAGE_SIZE];
+ #endif // ENABLE_PAGE_PROTECTION
+ 
+ } // extern "C"
++
++#if defined(PS3ME_PPU)
++extern "C" void ps3me_vm_poll_ticks();
++extern "C" void ps3me_poll_ticks_bridge() { ps3me_vm_poll_ticks(); }
++#endif
+diff --git a/cldc/src/vm/includeDB b/cldc/src/vm/includeDB
+index cd06478..159e480 100644
+--- a/cldc/src/vm/includeDB
++++ b/cldc/src/vm/includeDB
+@@ -1705,6 +1705,9 @@ Globals.hpp                      GlobalDefinitions.hpp
+ GlobalDefinitions.hpp            kni.h
+ GlobalDefinitions.hpp            ROMImage.hpp
+ GlobalDefinitions.hpp            GlobalDefinitions_<compiler>.hpp
++GlobalDefinitions.hpp            PointerMath.hpp
++GlobalDefinitions.hpp            HeapBitmap.hpp
++GlobalDefinitions.hpp            VmSlot.hpp
+ GlobalDefinitions.hpp            Globals_<os_family>.hpp
+ 
+ GlobalDefinitions.cpp            GlobalDefinitions.hpp
+diff --git a/cldc/src/vm/os/generic/OS_generic.cpp b/cldc/src/vm/os/generic/OS_generic.cpp
+index 74f56df..67f7e65 100644
+--- a/cldc/src/vm/os/generic/OS_generic.cpp
++++ b/cldc/src/vm/os/generic/OS_generic.cpp
+@@ -1,185 +1,49 @@
+-/*
+- *   
+- *
+- * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
+- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
+- * 
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public License version
+- * 2 only, as published by the Free Software Foundation.
+- * 
+- * This program is distributed in the hope that it will be useful, but
+- * WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+- * General Public License version 2 for more details (a copy is
+- * included at /legal/license.txt).
+- * 
+- * You should have received a copy of the GNU General Public License
+- * version 2 along with this work; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+- * 02110-1301 USA
+- * 
+- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa
+- * Clara, CA 95054 or visit www.sun.com if you need additional
+- * information or have any questions.
++/* SPDX-License-Identifier: GPL-2.0-only
++ * Cooperative ticker: called on VM safepoints, never from a concurrent PPU
++ * thread. This avoids racing the green-thread scheduler or collector.
+  */
+-
+-/*
+- * OS_generic.cpp: generic implementation of the VM
+- *               operating system porting interface
+- *
+- * This file defines the generic-specific implementation
+- * of the OS porting interface (class Os). Refer to file
+- * "/src/vm/share/runtime/OS.hpp" and the Porting
+- * Guide for details.
+- */
+-
+ #include "incls/_precompiled.incl"
+ #include "incls/_OS_generic.cpp.incl"
+-
+-static bool             ticker_stopping = false;
+-static bool             ticker_running = false;
+-static int              sock_initialized = 0;
+-
+-static bool  _has_offset = false;
+-static jlong _offset     = 0;
+-
+-void ads_panic() {
+-  /* Add this empty method just for building generic_arm smoothly */ 
+-  return;
+-}
+-
++#include <sys/systime.h>
++#include <lv2/systime.h>
++static bool ps3me_ticks_running=false,ps3me_ticks_suspended=false;
++static u64 ps3me_tick_deadline=0;
++extern "C" void ps3me_vm_poll_ticks() {
++    if(!ps3me_ticks_running || ps3me_ticks_suspended)return;
++    u64 now=(u64)sysGetSystemTime();
++    if(now<ps3me_tick_deadline)return;
++    const unsigned interval=10;
++    ps3me_tick_deadline=now+(u64)interval*1000;
++    real_time_tick(interval);
++}
++void ads_panic() { abort(); }
+ #if ENABLE_DYNAMIC_NATIVE_METHODS
+-void* Os::loadLibrary(const char* libName) {
+-  return 0; //Library loading not supported for this OS
+-}
+-void* Os::getSymbol(void* handle, const char* name) {
+-  return 0; //Library loading not supported for this OS
+-}
++void* Os::loadLibrary(const char*) { return NULL; }
++void* Os::getSymbol(void*,const char*) { return NULL; }
+ #endif
+-
+-jlong offset() {
+-  /* Calculate the OS dependent offset time, if no offset exist, 
+-   * this function is not necessary */
+-  _offset = 0;
+-  return _offset;
++jlong Os::java_time_millis() {
++    u64 seconds=0,nanos=0;
++    return sysGetCurrentTime(&seconds,&nanos)==0 ? (jlong)(seconds*1000+nanos/1000000) : 0;
+ }
+-
+ #if SUPPORTS_MONOTONIC_CLOCK
+-jlong Os::monotonic_time_millis() {
+-  /*
+-   * Get the monotonic time in milliseconds from some unspecified starting
+-   * point. This clock must be monotonic and must have resolution and read
+-   * time not lower than that of Os::java_time_millis().
+-   */
+-  return 0;
+-}
++jlong Os::monotonic_time_millis() { return sysGetSystemTime()/1000; }
++#endif
++void Os::sleep(jlong milliseconds) {
++    if(milliseconds<0)milliseconds=0;
++    while(milliseconds>0) {
++        u32 slice=milliseconds>50 ? 50 : (u32)milliseconds;
++        sysUsleep(slice*1000);milliseconds-=slice;
++    }
++}
++jint Os::start_ticks() { ps3me_tick_deadline=(u64)sysGetSystemTime();ps3me_ticks_running=true;return true; }
++void Os::stop_ticks() { ps3me_ticks_running=false; }
++void Os::suspend_ticks() { ps3me_ticks_suspended=true; }
++void Os::resume_ticks() { ps3me_ticks_suspended=false;ps3me_tick_deadline=(u64)sysGetSystemTime(); }
++void Os::start_compiler_timer() {}
++jint Os::check_compiler_timer() { return true; }
++void Os::initialize() { ps3me_ticks_suspended=false;start_ticks(); }
++void Os::dispose() { stop_ticks();ps3me_ticks_suspended=false; }
++#if USE_HIGH_RESOLUTION_TIMER
++jlong Os::elapsed_counter() { return sysGetSystemTime(); }
++jlong Os::elapsed_frequency() { return 1000000; }
+ #endif
+-
+-jlong Os::java_time_millis() {
+-  /*
+-   * Get the current system time, unit: millisecond, count time from
+-   * Jan. 1st, 1970. Need reduce the OS dependent offset time value, if
+-   * the offset exist
+-   */
+-  return 0;
+-}
+-
+-void Os::sleep(jlong ms) {
+-  /* let the current process sleep for ms seconds */
+-}
+-
+-
+-bool Os::start_ticks() {
+-  /* 
+-   * Enable periodic calls to real_time_tick().
+-   * This is called at VM startup.
+-   */
+-  return true;
+-}
+-
+-void Os::stop_ticks() {
+-  /*
+-   * Permanently disable calls to real_time_tick().
+-   * This is called at VM shut-down.
+-   */
+-  return;
+-}
+-
+-void Os::suspend_ticks() {
+-  /*
+-   * Temporarily turn off calls to real_time_tick().
+-   * This is called when the VM is about to sleep
+-   * (when there's no Java thread to execute)
+-   */
+-  return;
+-}
+-
+-void Os::resume_ticks() {
+-  /*
+-   * Reverse the effect of suspend_ticks().
+-   * This is called when the VM
+-   * wakes up and continues executing Java threads.
+-   */
+-  return;
+-}
+-
+-void Os::start_compiler_timer() {
+-  /*
+-   * Start a timer to check if the compiler has spent too much time and
+-   * needs to be suspended. See ../ads/OS_ads.cpp for an example.
+-   */
+-  return;
+-}
+-
+-bool Os::check_compiler_timer() {
+-  /*
+-   * Returns true iff the current compilation has taken too long and
+-   * should be suspended and resumed later.
+-   */
+-  return false;
+-}
+-
+-void Os::initialize() {
+-  /*
+-   * This function is used to initialize the OS structure. 
+-   * This is where timers and threads get started for the first
+-   * real_time_tick event, and where signal handlers and other I/O
+-   * initialization should occur.
+-   */
+-  return;
+-}
+-
+-void Os::dispose() {
+-  /*
+-   * This method needs to correctly clean-up
+-   * all threads and other OS related activity to allow
+-   * for a clean and complete restart.  This should undo
+-   * all the work that initialize does.
+-   */
+-  return;
+-}
+-
+-#ifndef PRODUCT
+-static bool  _has_performance_frequency = false;
+-static jlong _performance_frequency     = 0;
+-
+-
+-jlong Os::elapsed_counter() {
+-  /*
+-   * Retrieve the current time in high-resolution.
+-   * The resolution is decided by elapsed_frequency() method
+-   */
+-  return 0;
+-}
+-
+-jlong Os::elapsed_frequency() {
+-  /*
+-   * Retrieve the system-support highest time resolution,
+-   * The return value is equal to  1s / the small unit of system-support unit
+-   * For example, if system support millisecond, the return valuse is 1000
+-   */
+-  return 0;
+-}
+-
+-#endif // PRODUCT
+diff --git a/cldc/src/vm/os/generic/OsFile_generic.cpp b/cldc/src/vm/os/generic/OsFile_generic.cpp
+index 96d6d82..01f864f 100644
+--- a/cldc/src/vm/os/generic/OsFile_generic.cpp
++++ b/cldc/src/vm/os/generic/OsFile_generic.cpp
+@@ -1,178 +1,46 @@
+-/*
+- *   
+- *
+- * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
+- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
+- * 
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public License version
+- * 2 only, as published by the Free Software Foundation.
+- * 
+- * This program is distributed in the hope that it will be useful, but
+- * WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+- * General Public License version 2 for more details (a copy is
+- * included at /legal/license.txt).
+- * 
+- * You should have received a copy of the GNU General Public License
+- * version 2 along with this work; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+- * 02110-1301 USA
+- * 
+- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa
+- * Clara, CA 95054 or visit www.sun.com if you need additional
+- * information or have any questions.
++/* SPDX-License-Identifier: GPL-2.0-only
++ * PS3 file adapter. Overrides the upstream in-ROM generic filesystem.
+  */
+-
+-/** \file OsFile_generic.cpp
+- *
+- */
+-
+ #include "incls/_precompiled.incl"
+ #include "incls/_OsFile_generic.cpp.incl"
+-
+-// #include <sys/stat.h>
+-
++#include <stdio.h>
++#include <stdlib.h>
++#include <sys/stat.h>
+ extern "C" {
+-
+-
+-typedef struct {
+-    const char * name;
+-    const unsigned char * data;
+-    int length;
+-} file_info;
+-
+-extern file_info fs_image_table[];
+-
+-struct OsFile {
+-    int index;                    // index in fs_image_table
+-    const unsigned char * data;   // start of data
+-    int length;                   // length of data
+-    int pos;                      // current position
+-};
+-
+-static OsFile file_handles[10];
+-
+-OsFile_Handle OsFile_open(const PathChar *fn_filename, const char *mode) {
+-  int i;
+-
+-  for (i=0; ; i++) {
+-    if (fs_image_table[i].name == NULL) {
+-      // reached end of table -- file not found
+-      break;
+-    }
+-    if (strcmp(fn_filename, fs_image_table[i].name) == 0) {
+-      for (int j=0; j<ARRAY_SIZE(file_handles); j++) {
+-        if (file_handles[j].data == NULL) {
+-          file_handles[j].index = i;
+-          file_handles[j].data = fs_image_table[i].data;
+-          file_handles[j].length = fs_image_table[i].length;
+-          file_handles[j].pos = 0;
+-          return &file_handles[j];
+-        }
+-      }
+-      // out of OsFile handles
+-      break;
+-    }
+-  }
+-
+-  return NULL;
+-}
+-
+-int OsFile_close(OsFile_Handle handle) {
+-  handle->data = NULL;
+-  return 0;
+-}
+-
+-int OsFile_flush(OsFile_Handle handle) {
+-  // nothing to do
+-  return 0;
+-}
+-
+-size_t OsFile_read(OsFile_Handle handle,
+-                   void *buffer, size_t size, size_t count) {
+-  size_t done = 0;
+-  size_t req = size * count;
+-  char * p = (char*)buffer;
+-
+-  while ((handle->pos < handle->length) && (done < req)) {
+-     *p = handle->data[handle->pos];
+-     p++;
+-     handle->pos ++;
+-     done ++;
+-  }
+-
+-  return done;
+-}
+-
+-size_t OsFile_write(OsFile_Handle handle,
+-                    const void *buffer, size_t size, size_t count) {
+-  UNIMPLEMENTED();
+-  return 0;
+-}
+-
+-long OsFile_length(OsFile_Handle handle) {
+-  return handle->length;
+-}
+-
+-bool OsFile_exists(const PathChar *fn_filename) {
+-  if (strcmp(fn_filename, "/fs")) {
+-    return true;
+-  }
+-
+-  int i;
+-  for (i=0; ; i++) {
+-    if (fs_image_table[i].name == NULL) {
+-      // reached end of table -- file not found
+-      break;
+-    }
+-    if (strcmp(fn_filename, fs_image_table[i].name) == 0) {
+-      return true;
+-    }
+-  }
+-  return false;
+-}
+-
+-long OsFile_seek(OsFile_Handle handle, long offset, int origin) {
+-  switch (origin) {
+-  case SEEK_CUR:
+-    handle->pos += offset;
+-    break;
+-  case SEEK_SET:
+-    handle->pos = offset;
+-    break;
+-  case SEEK_END:
+-    handle->pos = handle->length + offset;
+-    break;
+-  default:
+-    return -1;
+-  }
+-
+-  if (handle->pos < 0) {
+-    handle->pos = 0;
+-  } else if (handle->pos > handle->length) {
+-    handle->pos = handle->length;
+-  }
+-
+-  return 0;
+-}
+-
+-int OsFile_error(OsFile_Handle handle) {
+-  return 0;
+-}
+-
+-int OsFile_eof(OsFile_Handle handle) {
+-  return (handle->pos >= handle->length);
+-}
+-
+-bool OsFile_rename(const char *from, const char *to) {
+-  UNIMPLEMENTED();
+-  return 0;
+-}
+-
+-int OsFile_remove(const char *filename) {
+-  UNIMPLEMENTED();
+-  return 0;
++struct OsFile { FILE* stream; };
++OsFile_Handle OsFile_open(const PathChar* name,const char* mode) {
++    if(!name || !mode) return NULL;
++    FILE* stream=fopen(name,mode);
++    if(!stream) return NULL;
++    OsFile* file=(OsFile*)malloc(sizeof(OsFile));
++    if(!file) { fclose(stream); return NULL; }
++    file->stream=stream;return file;
++}
++int OsFile_close(OsFile_Handle file) {
++    if(!file)return EOF;
++    int status=fclose(file->stream);free(file);return status;
++}
++int OsFile_flush(OsFile_Handle file) { return file ? fflush(file->stream) : EOF; }
++size_t OsFile_read(OsFile_Handle file,void* data,size_t size,size_t count) {
++    return file && data ? fread(data,size,count,file->stream) : 0;
++}
++size_t OsFile_write(OsFile_Handle file,const void* data,size_t size,size_t count) {
++    return file && data ? fwrite(data,size,count,file->stream) : 0;
++}
++long OsFile_length(OsFile_Handle file) {
++    if(!file)return -1;
++    long position=ftell(file->stream);
++    if(position<0 || fseek(file->stream,0,SEEK_END)!=0)return -1;
++    long length=ftell(file->stream);
++    if(fseek(file->stream,position,SEEK_SET)!=0)return -1;
++    return length;
++}
++bool OsFile_exists(const PathChar* name) { struct stat status;return name && stat(name,&status)==0; }
++long OsFile_seek(OsFile_Handle file,long offset,int origin) {
++    return file ? fseek(file->stream,offset,origin) : -1;
++}
++int OsFile_error(OsFile_Handle file) { return file ? ferror(file->stream) : 1; }
++int OsFile_eof(OsFile_Handle file) { return file ? feof(file->stream) : 1; }
++bool OsFile_rename(const char* from,const char* to) { return from && to && rename(from,to)==0; }
++int OsFile_remove(const char* name) { return name ? remove(name) : -1; }
+ }
+-
+-} // extern "C"
+diff --git a/cldc/src/vm/os/generic/OsMemory_generic.cpp b/cldc/src/vm/os/generic/OsMemory_generic.cpp
+index 4e44751..30778d9 100644
+--- a/cldc/src/vm/os/generic/OsMemory_generic.cpp
++++ b/cldc/src/vm/os/generic/OsMemory_generic.cpp
+@@ -1,59 +1,6 @@
+-/*
+- *   
+- *
+- * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
+- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
+- * 
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public License version
+- * 2 only, as published by the Free Software Foundation.
+- * 
+- * This program is distributed in the hope that it will be useful, but
+- * WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+- * General Public License version 2 for more details (a copy is
+- * included at /legal/license.txt).
+- * 
+- * You should have received a copy of the GNU General Public License
+- * version 2 along with this work; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+- * 02110-1301 USA
+- * 
+- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa
+- * Clara, CA 95054 or visit www.sun.com if you need additional
+- * information or have any questions.
+- */
+-
+-/*
+- * OsMemory_generic.cpp:
+- */
+-
++/* SPDX-License-Identifier: GPL-2.0-only */
+ #include "incls/_precompiled.incl"
+ #include "incls/_OsMemory_generic.cpp.incl"
+-
+-
+-#include "../utilities/JVM_Malloc.hpp"
+-
+-
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
+-
+-void *OsMemory_allocate(size_t size) {
+-	/* 
+-	 * Allocates memory blocks in memory pool (heap)
+-	 * size: bytes to be allocated 
+-	 * malloc returns a void pointer to the allocated space.  
+-	 * if there is insufficient memory available, it returns NULL (0)
+-	 */
+-  return JVM_Malloc(size);
+-}
+-
+-void OsMemory_free(void *p) {
+-  /* Deallocates or frees a memory block (pointer *p ) */
+-  JVM_Free(p);
+-}
+-
+-#ifdef __cplusplus
+-}
+-#endif
++#include <stdlib.h>
++extern "C" void* OsMemory_allocate(size_t bytes) { return malloc(bytes); }
++extern "C" void OsMemory_free(void* address) { free(address); }
+diff --git a/cldc/src/vm/os/generic/OsMisc_generic.cpp b/cldc/src/vm/os/generic/OsMisc_generic.cpp
+index d55f1a7..12b3b22 100644
+--- a/cldc/src/vm/os/generic/OsMisc_generic.cpp
++++ b/cldc/src/vm/os/generic/OsMisc_generic.cpp
+@@ -1,89 +1,13 @@
+-/*
+- *   
+- *
+- * Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
+- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
+- * 
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public License version
+- * 2 only, as published by the Free Software Foundation.
+- * 
+- * This program is distributed in the hope that it will be useful, but
+- * WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+- * General Public License version 2 for more details (a copy is
+- * included at /legal/license.txt).
+- * 
+- * You should have received a copy of the GNU General Public License
+- * version 2 along with this work; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+- * 02110-1301 USA
+- * 
+- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa
+- * Clara, CA 95054 or visit www.sun.com if you need additional
+- * information or have any questions.
+- */
+-
+-/*
+- * OsMisc_generic.cpp:
+- */
+-
++/* SPDX-License-Identifier: GPL-2.0-only */
+ #include "incls/_precompiled.incl"
+ #include "incls/_OsMisc_generic.cpp.incl"
+-
+-#ifdef __cplusplus
+ extern "C" {
+-#endif
+-
+-const JvmPathChar *OsMisc_get_classpath() {
+-  /* 
+-   * Returns a system-wide defined classpath. This function is called only
+-   * if a classpath is not given in parameters to JVM_Start() or JVM_Start2().
+-   * On Win32 and Linux this function calls getenv("CLASSPATH"). This function
+-   * is generally not needed in real devices.
+-   */
+-  return NULL;
+-}
+-
+-
+-void OsMisc_flush_icache(address start, int size) {
+-  /* 
+-   * flush_icache is used, for example, to flush any caches used by a
+-   * code segment that is deoptimized or moved during a garbage
+-   * collection.
+-   */
++const JvmPathChar* OsMisc_get_classpath() { return NULL; }
++void OsMisc_flush_icache(address start,int size) {
++    if(size>0)__builtin___clear_cache((char*)start,(char*)start+size);
+ }
+-
+ #if !defined(PRODUCT) || ENABLE_TTY_TRACE || USE_DEBUG_PRINTING
+-const char *OsMisc_jlong_format_specifier() {
+-  /* 
+-   * Return jlong-specifier prefixes are used with type characters in
+-   * printf functions or wprintf functions to specify interpretation
+-   * of jlong e.g. for win32 is "%I64d", for linux is "%lld"
+-   */
+-  return "";
+-}
+-
+-const char *OsMisc_julong_format_specifier() {
+-  /* 
+-   * Return julong-specifier prefixes are used with type characters in
+-   * printf functions or wprintf functions to specify interpretation
+-   * of julong e.g. for win32 is "%I64u", for linux is "%llu"
+-   */
+-  return "";
+-}
+-#endif // PRODUCT
+-
+-#if ENABLE_PAGE_PROTECTION
+-void OsMisc_page_protect() {
+-  UNIMPLEMENTED();
+-}
+-
+-void OsMisc_page_unprotect() {
+-  UNIMPLEMENTED();
+-}
+-#endif // ENABLE_PAGE_PROTECTION
+-
+-#ifdef __cplusplus
+-}
++const char* OsMisc_jlong_format_specifier() { return "%lld"; }
++const char* OsMisc_julong_format_specifier() { return "%llu"; }
+ #endif
++}
+diff --git a/cldc/src/vm/os/generic/OsSocket_generic.cpp b/cldc/src/vm/os/generic/OsSocket_generic.cpp
+index b2995c2..e9c5ae5 100644
+--- a/cldc/src/vm/os/generic/OsSocket_generic.cpp
++++ b/cldc/src/vm/os/generic/OsSocket_generic.cpp
+@@ -35,7 +35,10 @@
+ 
+ void JVMSPI_CheckEvents(JVMSPI_BlockedThreadInfo * blocked_threads,
+                         int blocked_threads_count, jlong timeout_ms) {
+-  // IMPL_NOTE: consider whether it should be fixed. 
++  // No network operations are exposed by this offline port.
++  // Yield while Java threads are sleeping instead of busy spinning.
++  (void)blocked_threads; (void)blocked_threads_count;
++  Os::sleep(timeout_ms<0 ? 10 : (timeout_ms>50 ? 50 : timeout_ms));
+ }
+ 
+ extern "C" {
+diff --git a/cldc/src/vm/os/linux/OsMemory_linux.cpp b/cldc/src/vm/os/linux/OsMemory_linux.cpp
+index e61a64a..7150b2b 100644
+--- a/cldc/src/vm/os/linux/OsMemory_linux.cpp
++++ b/cldc/src/vm/os/linux/OsMemory_linux.cpp
+@@ -162,8 +162,8 @@ address OsMemory_allocate_chunk(size_t initial_size,
+     return NULL;
+   }
+ 
+-  GUARANTEE((juint)chunk % alignment == 0, "must be aligned");
+-  GUARANTEE((juint)chunk % SysPageSize == 0, "must be page aligned");
++  GUARANTEE((uintptr_t)chunk % alignment == 0, "must be aligned");
++  GUARANTEE((uintptr_t)chunk % SysPageSize == 0, "must be page aligned");
+   
+   size_t aligned_size = page_align_up(initial_size);
+   
+diff --git a/cldc/src/vm/share/ROM/ROM.cpp b/cldc/src/vm/share/ROM/ROM.cpp
+index 40285ab..ad48965 100644
+--- a/cldc/src/vm/share/ROM/ROM.cpp
++++ b/cldc/src/vm/share/ROM/ROM.cpp
+@@ -223,7 +223,7 @@ ROMWriter* _rom_writer;
+ // here we optimize in the subtle way - we save one comparision
+ // by using unsigned math
+ inline bool ROM::heap_src_block_contains(address target) {
+-  juint p = ((juint)target) - ((juint)&_rom_heap_block[0]);
++  uintptr_t p = (uintptr_t)target - (uintptr_t)&_rom_heap_block[0];
+   bool ret = p < (juint)_rom_heap_block_size;
+   return ret;
+ }
+@@ -877,7 +877,7 @@ OopDesc* ROM::raw_text_klass_of(const OopDesc* obj) {
+   const int pass = text_segment_of(obj);
+   juint byte_offset = (juint)obj - _rom_text_block_segments[pass];  
+ #else
+-  juint byte_offset = ((juint)obj) - ((juint)&_rom_text_block[0]);
++  uintptr_t byte_offset = (uintptr_t)obj - (uintptr_t)&_rom_text_block[0];
+   GUARANTEE((byte_offset < (juint)_rom_text_block_size), "must be in TEXT");
+ #endif
+   juint code = byte_offset / 4;
+diff --git a/cldc/src/vm/share/ROM/ROM.hpp b/cldc/src/vm/share/ROM/ROM.hpp
+index 43a0d86..82e8d0e 100644
+--- a/cldc/src/vm/share/ROM/ROM.hpp
++++ b/cldc/src/vm/share/ROM/ROM.hpp
+@@ -522,7 +522,7 @@ public:
+       return true;
+     }
+ #else
+-    juint offset = ((juint)target) - ((juint)&_rom_text_block[0]);
++    uintptr_t offset = ((uintptr_t)target) - ((uintptr_t)&_rom_text_block[0]);
+     if (offset < (juint)_rom_text_block_size_fast) {
+       return true;
+     }
+@@ -531,7 +531,7 @@ public:
+   }
+ 
+   static bool system_data_contains(const OopDesc* target) {
+-    juint offset = ((juint)target) - ((juint)&_rom_data_block[0]);
++    uintptr_t offset = ((uintptr_t)target) - ((uintptr_t)&_rom_data_block[0]);
+     if (offset < (juint)_rom_data_block_size_fast) {
+       return true;
+     } else {
+diff --git a/cldc/src/vm/share/ROM/ROMStructsWriter.cpp b/cldc/src/vm/share/ROM/ROMStructsWriter.cpp
+index d96e33a..861c18d 100644
+--- a/cldc/src/vm/share/ROM/ROMStructsWriter.cpp
++++ b/cldc/src/vm/share/ROM/ROMStructsWriter.cpp
+@@ -29,6 +29,9 @@
+ 
+ #if USE_SOURCE_IMAGE_GENERATOR
+ 
++int ROMStructsWriter::_struct_offset=0;
++int ROMStructsWriter::_pad_serial=0;
++
+ const char *ROMStructsWriter::reserved_words[] = {
+     // ANSI C keywords
+     "auto", "break", "case", "char", "const", "continue", "default",
+@@ -129,6 +132,8 @@ void ROMStructsWriter::write_primitive_array_rom_struct(Stream *stream,
+   stream->print_cr("typedef struct {");
+   stream->print_cr("    void * dummy;");
+   stream->print_cr("    int length;");
++  if(Array::base_offset() > (int)(sizeof(void*)+sizeof(jint)))
++    stream->print_cr("    unsigned char __array_pad[%d];",Array::base_offset()-(int)(sizeof(void*)+sizeof(jint)));
+   stream->print_cr("    %s elements[1];", field_type);
+   stream->print_cr("} %s_array;", type);
+ }
+@@ -136,6 +141,7 @@ void ROMStructsWriter::write_primitive_array_rom_struct(Stream *stream,
+ void ROMStructsWriter::write_rom_struct(Stream *stream, 
+                                         InstanceClass *klass JVM_TRAPS) {
+   TypeArray byte_array = Natives::get_jni_class_name(klass JVM_CHECK);
++  _struct_offset=0;
+   stream->print_cr("struct %s {", byte_array.base_address());
+ 
+   write_rom_struct_fields(stream, klass, klass JVM_CHECK);
+@@ -181,6 +187,7 @@ void ROMStructsWriter::write_rom_struct_fields(Stream *stream,
+   if (super.is_null()) {
+     // This is java.lang.Object. Write the klass field
+     stream->print_cr("\tvoid * __do_not_use__;");
++    _struct_offset=sizeof(void*);
+   }
+ 
+   TypeArray::Fast fields = klass->original_fields();
+@@ -226,7 +233,14 @@ void ROMStructsWriter::write_rom_struct_fields(Stream *stream,
+         stream->print("/* @%d */\t", offset);
+       }
+ 
++      // native layout gap: Java ints occupy native slots in this port.
++      while(_struct_offset<offset) {
++        stream->print_cr("jbyte ___pad%d;",++_pad_serial);
++        ++_struct_offset;
++        stream->print("    ");
++      }
+       last_size = write_rom_struct_type(stream, &f JVM_CHECK);
++      _struct_offset=offset+last_size;
+       stream->print(" ");
+ 
+       name = f.name();
+@@ -253,26 +267,11 @@ void ROMStructsWriter::write_rom_struct_fields(Stream *stream,
+     current_base = min;
+   }
+ 
+-  // Explicitly add padding whenever we find a 'hole' in the object layout.
+-  // This is necessary if you have something like
+-  //     class Super {
+-  //         byte x;
+-  //     }
+-  //     class Child extends Super {
+-  //         byte y;
+-  //     }
+-  // ClassFileParses always start y at a 4-byte aligned address, so we need
+-  // to add 3 pad bytes.
+-  static int pad_serial = 0;
+-  int pad = 4 - ((current_base + last_size) % 4);
+-  if (pad != 4) {
+-    while (pad > 0) {
+-      current_base ++;
+-      pad --;
+-      pad_serial ++;
+-      stream->print("    /* @%d */\t", current_base);
+-      stream->print_cr("jbyte ___pad%d;", pad_serial);
+-    }
++  // Preserve the complete superclass size before emitting subclass fields.
++  const int limit=klass->instance_size().fixed_value();
++  while(_struct_offset<limit) {
++    stream->print_cr("    jbyte ___pad%d;",++_pad_serial);
++    ++_struct_offset;
+   }
+ }
+ 
+@@ -382,7 +381,7 @@ int ROMStructsWriter::write_rom_struct_type(Stream *stream, Field *field
+                                             JVM_TRAPS)
+ {
+   const char * type = NULL;
+-  int size = 4;
++  int size = sizeof(void*);
+ 
+   switch (field->type()) {
+   case T_BOOLEAN: type = "jboolean"; size = 1; break;
+@@ -396,7 +395,7 @@ int ROMStructsWriter::write_rom_struct_type(Stream *stream, Field *field
+   }
+ 
+   if (field->type() == T_ARRAY) {
+-    size = 4;
++    size = sizeof(void*);
+     FieldType::Raw ft = field->signature();
+     ArrayClass::Raw ac = ft().object_type();
+ 
+diff --git a/cldc/src/vm/share/ROM/ROMStructsWriter.hpp b/cldc/src/vm/share/ROM/ROMStructsWriter.hpp
+index 8f9bc3d..5066d9e 100644
+--- a/cldc/src/vm/share/ROM/ROMStructsWriter.hpp
++++ b/cldc/src/vm/share/ROM/ROMStructsWriter.hpp
+@@ -44,5 +44,7 @@ private:
+                                    Symbol *field_name);
+   bool is_reserved_word(Symbol *field_name);
+   static const char *reserved_words[];
++  static int _struct_offset;
++  static int _pad_serial;
+ };
+ #endif
+diff --git a/cldc/src/vm/share/ROM/ROMTools.cpp b/cldc/src/vm/share/ROM/ROMTools.cpp
+index c4ba6b7..18deb6e 100644
+--- a/cldc/src/vm/share/ROM/ROMTools.cpp
++++ b/cldc/src/vm/share/ROM/ROMTools.cpp
+@@ -329,8 +329,8 @@ jint ROMVector::compare_to(String *s1, String *s2) {
+           return 1;
+         }
+       }
+-      int o1 = (int)(s1->obj());
+-      int o2 = (int)(s2->obj());
++      intptr_t o1=(intptr_t)s1->obj();
++      intptr_t o2=(intptr_t)s2->obj();
+ 
+       if (o1 > o2) {
+         return -1;
+@@ -411,7 +411,7 @@ void ROMTools::shrink_object(Oop *obj, size_t old_size, size_t reduction) {
+     return;
+   }
+ 
+-  OopDesc *stuffing = (OopDesc*)(((int)obj->obj()) + old_size - reduction);
++  OopDesc *stuffing = (OopDesc*)((address)obj->obj() + old_size - reduction);
+   Oop *oop = (Oop*)&stuffing;
+ 
+   if (reduction == sizeof(OopDesc)) {
+diff --git a/cldc/src/vm/share/ROM/ROMWriter.cpp b/cldc/src/vm/share/ROM/ROMWriter.cpp
+index 34218b4..df4e779 100644
+--- a/cldc/src/vm/share/ROM/ROMWriter.cpp
++++ b/cldc/src/vm/share/ROM/ROMWriter.cpp
+@@ -864,7 +864,7 @@ void ROMWriter::set_skip_words_of(Oop* object, int skip JVM_TRAPS) {
+ 
+ int ROMWriter::offset_of(Oop* object JVM_TRAPS) {
+   if (write_by_reference(object)) {
+-    return (int)(object->obj());
++    return (int)(intptr_t)(object->obj());
+   }
+   ROMizerHashEntry::Raw entry = info_for(object JVM_CHECK_(-1));
+   return entry().offset();
+@@ -1386,7 +1386,7 @@ int ROMWriter::stream_instance_fields(InstanceClass* /*klass*/,
+ #endif
+ 
+ void ROMWriter::generate_fieldmap_by_oops_do(OopDesc**p) {
+-  int offset = (int)p - (int)_streaming_oop;
++  int offset = DISTANCE(_streaming_oop,p);
+   for (int i = _last_oop_streaming_offset + sizeof(OopDesc*); i < offset;
+        i += sizeof(OopDesc*)) {
+     _streaming_fieldmap->byte_at_put(_streaming_index++, T_INT);
+diff --git a/cldc/src/vm/share/ROM/ROMWriter.hpp b/cldc/src/vm/share/ROM/ROMWriter.hpp
+index 5924dfa..abad761 100644
+--- a/cldc/src/vm/share/ROM/ROMWriter.hpp
++++ b/cldc/src/vm/share/ROM/ROMWriter.hpp
+@@ -501,10 +501,11 @@ public:
+ 
+   static inline int info_hashcode(Oop *object) {
+     // Note: hash code will be recomputed after each GC.
+-    return (((int)(object->obj())) & 0x7fffffff) % INFO_TABLE_SIZE;
++    return (((uintptr_t)(object->obj())) & 0x7fffffff) % INFO_TABLE_SIZE;
+   }
+ 
+   static bool write_by_reference(OopDesc *obj) {
++    if(sizeof(void*)>sizeof(jint)) return false;
+     // In Monet: if an object is already included in a loaded (system
+     // or binary) image, we don't write the whole object again into
+     // the output. Instead, we write only a reference to it.
+diff --git a/cldc/src/vm/share/ROM/SourceROMWriter.cpp b/cldc/src/vm/share/ROM/SourceROMWriter.cpp
+index b9b369d..b8d5014 100644
+--- a/cldc/src/vm/share/ROM/SourceROMWriter.cpp
++++ b/cldc/src/vm/share/ROM/SourceROMWriter.cpp
+@@ -75,6 +75,15 @@ void SourceROMWriter::start(JVM_SINGLE_ARG_TRAPS) {
+   GUARANTEE(state() == STATE_VIRGIN, "sanity");
+   set_state(STATE_START);
+   ROMWriter::start(JVM_SINGLE_ARG_CHECK);
++  if(sizeof(void*)==8 && GenerateROMStructs && !GenerateROMStructsStatics) {
++    tty->print_cr("PS3ME: emitting native layouts; ROM serialization is disabled");
++    _optimizer.initialize(&_optimizer_log_stream JVM_CHECK);
++    ROMStructsWriter layouts;
++    layouts.write(this JVM_CHECK);
++    set_state(STATE_DONE);
++    save_file_streams();
++    return;
++  }
+   _optimizer.initialize(&_optimizer_log_stream JVM_CHECK);
+   constant_string_table()->initialize(256, 1 JVM_CHECK);
+   set_constant_string_count(0);
+@@ -432,7 +441,7 @@ void SourceROMWriter::write_text_klass_table(JVM_SINGLE_ARG_TRAPS) {
+       klass = oop.klass();
+       if (GenerateROMComments && VerbosePointers) {
+         main_stream()->print("/* (0x%x)->klass = 0x%x*/ ", 
+-                      (int)(oop.obj()), (int)(klass.obj()));
++                      (int)(intptr_t)(oop.obj()), (int)(intptr_t)(klass.obj()));
+       }
+       num_written ++;
+       write_reference(&oop, TEXT_BLOCK, main_stream() JVM_CHECK);
+@@ -2411,7 +2420,7 @@ void OffsetFinder::begin_object(Oop *object JVM_TRAPS) {
+ #if ENABLE_HEAP_NEARS_IN_HEAP  
+   case ROMWriter::TEXT_AND_HEAP_BLOCK:
+ #endif
+-    offset = by_ref ? (int)object->obj() : _text_offset;
++    offset = by_ref ? (int)(intptr_t)object->obj() : _text_offset;
+ #if !USE_SEGMENTED_TEXT_BLOCK_WRITER
+     if (offset == 0) {
+       // if the first text object is a method we can't skip any header info
+@@ -2459,7 +2468,7 @@ void OffsetFinder::begin_object(Oop *object JVM_TRAPS) {
+ #if ENABLE_HEAP_NEARS_IN_HEAP  
+   case ROMWriter::DATA_AND_HEAP_BLOCK:
+ #endif
+-    offset = by_ref ? (int)object->obj() : _data_offset;
++    offset = by_ref ? (int)(intptr_t)object->obj() : _data_offset;
+     break;
+   case ROMWriter::HEAP_BLOCK:
+     offset = _heap_offset;
+diff --git a/cldc/src/vm/share/handles/ConstantPool.hpp b/cldc/src/vm/share/handles/ConstantPool.hpp
+index 6913848..ba3e66d 100644
+--- a/cldc/src/vm/share/handles/ConstantPool.hpp
++++ b/cldc/src/vm/share/handles/ConstantPool.hpp
+@@ -88,14 +88,14 @@ class ConstantPool: public Oop {
+   // in those cases that are not called indirectly by the ClassFileParser.
+   int offset_from_index(int index) const {
+     GUARANTEE(is_within_bounds(index), "Constant pool index out of bounds");
+-    return base_offset() + (index * sizeof(jint));
++    return base_offset() + (index * BytesPerWord);
+   }
+ 
+   // Use this version instead of the one above
+   // when indirectly called by the ClassFileParser.
+   int offset_from_checked_index(int index JVM_TRAPS) const {
+     cp_check_0(is_within_bounds(index));
+-    int result = base_offset() + (index * sizeof(jint));
++    int result = base_offset() + (index * BytesPerWord);
+     GUARANTEE(result != 0, "sanity for JVM_ZCHECK");
+     return result;
+   }
+@@ -136,9 +136,14 @@ class ConstantPool: public Oop {
+     return int_field(offset_from_index(index));
+   }
+ 
++  jlong wide_bits_at(int index,bool msw_first) const {
++    jint a=int_field(offset_from_index(index));
++    jint b=int_field(offset_from_index(index+1));
++    return msw_first ? jlong_from_low_high(b,a) : jlong_from_low_high(a,b);
++  }
+   jlong long_at(int index) {
+     GUARANTEE(tag_at(index).is_long(), "Corrupted constant pool");
+-    return long_field(offset_from_index(index));
++    return wide_bits_at(index,tag_at(index).is_double() ? MSW_FIRST_FOR_DOUBLE : MSW_FIRST_FOR_LONG);
+   }
+ 
+   jfloat float_at(int index) {
+@@ -148,7 +153,7 @@ class ConstantPool: public Oop {
+ 
+   jdouble double_at(int index) {
+     GUARANTEE(tag_at(index).is_double(), "Corrupted constant pool");
+-    return double_field(offset_from_index(index));
++    return jdouble_cast(wide_bits_at(index,MSW_FIRST_FOR_DOUBLE));
+   }
+ 
+   // Use this version instead of the one below only
+@@ -350,7 +355,7 @@ class ConstantPool: public Oop {
+ 
+   void long_at_put(int index, jlong l) {
+     tag_at_put(index, JVM_CONSTANT_Long);
+-    long_field_put(offset_from_index(index), l);
++    long_parts_at_put(index,(jint)((julong)l>>32),(jint)l);
+   }
+ 
+   void float_at_put(int index, jfloat f) {
+@@ -360,7 +365,8 @@ class ConstantPool: public Oop {
+ 
+   void double_at_put(int index, jdouble d) {
+     tag_at_put(index, JVM_CONSTANT_Double);
+-    double_field_put(offset_from_index(index), d);
++    jlong bits=jlong_cast(d);
++    double_parts_at_put(index,(jint)((julong)bits>>32),(jint)bits);
+   }
+ 
+   void double_parts_at_put(int index, jint msw, jint lsw) {
+@@ -505,7 +511,7 @@ class ConstantPool: public Oop {
+   jlong value64_at(int index) {
+     GUARANTEE(tag_at(index).is_long() || tag_at(index).is_double(),
+               "Corrupted constant pool");
+-    return long_field(offset_from_index(index));
++    return wide_bits_at(index,tag_at(index).is_double() ? MSW_FIRST_FOR_DOUBLE : MSW_FIRST_FOR_LONG);
+   }
+ 
+   // Try to resolve an UnresolvedClass without causing any class loading
+diff --git a/cldc/src/vm/share/handles/FieldType.cpp b/cldc/src/vm/share/handles/FieldType.cpp
+index 2f49ed1..bf0fbb8 100644
+--- a/cldc/src/vm/share/handles/FieldType.cpp
++++ b/cldc/src/vm/share/handles/FieldType.cpp
+@@ -43,7 +43,6 @@ BasicType FieldType::basic_type() {
+ int FieldType::allocation_byte_size(bool is_static_field) {
+   BasicType type = basic_type();
+   jint byte_size = byte_size_for(type);
+-  return is_static_field 
+-       ? align_size_up(byte_size, T_INT_byte_size)
+-       : byte_size;
++  return (is_static_field || byte_size >= T_INT_byte_size)
++       ? align_size_up(byte_size,wordSize) : byte_size;
+ }
+diff --git a/cldc/src/vm/share/handles/Method.cpp b/cldc/src/vm/share/handles/Method.cpp
+index 1a9c711..0b71c14 100644
+--- a/cldc/src/vm/share/handles/Method.cpp
++++ b/cldc/src/vm/share/handles/Method.cpp
+@@ -209,7 +209,7 @@ ReturnOop Method::stackmaps() const {
+     return NULL;
+   }
+ #endif
+-  juint n = uint_field(stackmaps_offset());
++  uintptr_t n = (uintptr_t)native_address_field(stackmaps_offset());
+   if ((n & 0x01) != 0) {
+     // This is a special encoding of stackmaps created by the source
+     // romizer to save system ROM footprint. See ROMWriter::stream_method()
+@@ -1068,10 +1068,10 @@ void Method::check_bytecodes(JVM_SINGLE_ARG_TRAPS) {
+         case Bytecodes::_lookupswitch:     // 0xab
+         case Bytecodes::_tableswitch:      // 0xaa
+           {
+-            int a_bci = align_size_up(bci + 1, wordSize);
++            int a_bci = align_size_up(bci + 1, BytesPerInt);
+             // Bounds check: should be able to read at least 2 words 
+             // starting with a_bci
+-            if (a_bci + 2 * wordSize > codesize) {
++            if (a_bci + 2 * BytesPerInt > codesize) {
+               goto error;
+             }
+             //CR6538939: only zero-byte padding is allowed
+@@ -1084,11 +1084,11 @@ void Method::check_bytecodes(JVM_SINGLE_ARG_TRAPS) {
+             if (code == Bytecodes::_tableswitch) {
+               // Bounds check: should be able to read at least 3 words 
+               // starting with a_bci
+-              if (a_bci + 3 * wordSize > codesize) {
++              if (a_bci + 3 * BytesPerInt > codesize) {
+                 goto error;
+               }
+-              int raw_lo = get_native_aligned_int(a_bci + wordSize);
+-              int raw_hi = get_native_aligned_int(a_bci + 2 * wordSize);
++              int raw_lo = get_native_aligned_int(a_bci + BytesPerInt);
++              int raw_hi = get_native_aligned_int(a_bci + 2 * BytesPerInt);
+               if (Bytes::is_Java_byte_ordering_different()) {
+                 raw_hi = Bytes::swap_u4(raw_hi);
+                 raw_lo = Bytes::swap_u4(raw_lo);
+@@ -1099,7 +1099,7 @@ void Method::check_bytecodes(JVM_SINGLE_ARG_TRAPS) {
+               }
+               fields = 3 + raw_hi - raw_lo + 1;
+             } else {
+-              int raw_npairs = get_native_aligned_int(a_bci + wordSize);
++              int raw_npairs = get_native_aligned_int(a_bci + BytesPerInt);
+               if (Bytes::is_Java_byte_ordering_different()) {
+                 raw_npairs = Bytes::swap_u4(raw_npairs);
+               }
+@@ -1109,14 +1109,14 @@ void Method::check_bytecodes(JVM_SINGLE_ARG_TRAPS) {
+               }
+               fields = 2 + 2 * raw_npairs;
+             }
+-            int end = a_bci + fields * wordSize;
++            int end = a_bci + fields * BytesPerInt;
+             // fields can look negative if is is really large.
+             if (end >= codesize || fields < 0 || fields > codesize) {
+               goto error;
+             }
+             if (Bytes::is_Java_byte_ordering_different()
+                   && ENABLE_NATIVE_ORDER_REWRITING) {
+-              for (int offset = a_bci; offset < end; offset += wordSize) {
++              for (int offset = a_bci; offset < end; offset += BytesPerInt) {
+                 int old = get_native_aligned_int(offset);
+                 put_native_aligned_int(offset, Bytes::swap_u4(old));
+               }
+@@ -1184,7 +1184,7 @@ ReturnOop Method::create_other_endianness(JVM_SINGLE_ARG_TRAPS) {
+       switch(code) {
+         case Bytecodes::_tableswitch:
+         case Bytecodes::_lookupswitch: {
+-          int a_bci = align_size_up(bci + 1, wordSize);
++          int a_bci = align_size_up(bci + 1, BytesPerInt);
+           int fields;
+           if (code == Bytecodes::_tableswitch) {
+             int low  = get_java_switch_int(a_bci + 4);
+@@ -1194,8 +1194,8 @@ ReturnOop Method::create_other_endianness(JVM_SINGLE_ARG_TRAPS) {
+             int num_of_pairs  = get_java_switch_int(a_bci + 4);
+             fields = 2 + 2 * num_of_pairs;
+           }
+-          int end = a_bci + fields * wordSize;
+-          for (int offset = a_bci; offset < end; offset += wordSize) {
++          int end = a_bci + fields * BytesPerInt;
++          for (int offset = a_bci; offset < end; offset += BytesPerInt) {
+             int old = get_native_aligned_int(offset);
+             result().put_native_aligned_int(offset, Bytes::swap_u4(old));
+           }
+@@ -1922,7 +1922,7 @@ void Method::iterate_bytecode(int bci, BytecodeClosure* blk,
+       BasicType type = field_op_types[code - Bytecodes::_fast_bputfield];
+       int offset = ENABLE_NATIVE_ORDER_REWRITING ? get_native_ushort(bci+1)
+                                                  : get_java_ushort(bci+1);
+-      if (::byte_size_for(type) >= BytesPerWord) {
++      if (::byte_size_for(type) >= BytesPerInt) {
+         offset *= BytesPerWord;
+       }
+       blk->fast_put_field(type, offset JVM_NO_CHECK);
+@@ -1940,7 +1940,7 @@ void Method::iterate_bytecode(int bci, BytecodeClosure* blk,
+       BasicType type = field_op_types[code - Bytecodes::_fast_bgetfield];
+       int offset = ENABLE_NATIVE_ORDER_REWRITING ? get_native_ushort(bci+1)
+                                                  : get_java_ushort(bci+1);
+-      if (byte_size_for(type) >= BytesPerWord) {
++      if (byte_size_for(type) >= BytesPerInt) {
+         offset *= BytesPerWord;
+       }
+       blk->fast_get_field(type, offset JVM_NO_CHECK);
+diff --git a/cldc/src/vm/share/handles/ObjArray.cpp b/cldc/src/vm/share/handles/ObjArray.cpp
+index 6803deb..ba162d9 100644
+--- a/cldc/src/vm/share/handles/ObjArray.cpp
++++ b/cldc/src/vm/share/handles/ObjArray.cpp
+@@ -41,7 +41,7 @@ void ObjArray::obj_at_put(int index, OopDesc* value) {
+ void ObjArray::smart_obj_at_put(int index, OopDesc* value) {
+   const int offset = offset_from_index(index);
+   if( ObjectHeap::is_gc_active() ) {
+-    int_field_put( offset, int(value) );
++    *obj()->obj_field_addr(offset) = value;
+   } else {
+     obj_field_put( offset, value );
+   }
+diff --git a/cldc/src/vm/share/handles/Oop.hpp b/cldc/src/vm/share/handles/Oop.hpp
+index ab0859c..25a33ab 100644
+--- a/cldc/src/vm/share/handles/Oop.hpp
++++ b/cldc/src/vm/share/handles/Oop.hpp
+@@ -258,6 +258,14 @@ public:
+     *obj()->int_field_addr(offset) = value;
+   }
+ 
++  // Opaque native addresses are not traced Java object references.
++  address native_address_field(int offset) const {
++    address value; memcpy(&value,(address)obj()+offset,sizeof(value)); return value;
++  }
++  void native_address_field_put(int offset, address value) {
++    memcpy((address)obj()+offset,&value,sizeof(value));
++  }
++
+   /// Short field access operations.
+   jshort short_field(int offset) const { 
+     return *obj()->short_field_addr(offset);
+diff --git a/cldc/src/vm/share/handles/StackmapList.cpp b/cldc/src/vm/share/handles/StackmapList.cpp
+index 5c5f6fe..b361e29 100644
+--- a/cldc/src/vm/share/handles/StackmapList.cpp
++++ b/cldc/src/vm/share/handles/StackmapList.cpp
+@@ -30,7 +30,7 @@
+ void StackmapList::update(int index, jushort count, jushort height, jushort bci)
+ {
+   if (is_short_map(index)) {
+-    juint entry = uint_field(entry_stat_offset(index));
++    juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+     GUARANTEE(height <= 0x3, "Invalid map type chosen in set_stack_height");
+     GUARANTEE(count <= 0xF, "Invalid map type chosen in set_locals");
+ 
+@@ -42,7 +42,7 @@ void StackmapList::update(int index, jushort count, jushort height, jushort bci)
+     // set new bci
+     entry |= (bci << 7);
+ 
+-    uint_field_put(entry_stat_offset(index), entry);
++    native_address_field_put(entry_stat_offset(index), (address)(uintptr_t)entry);
+ 
+     GUARANTEE(get_stack_height(index) == height,
+               "StackmapList:Invalid short stack height");
+diff --git a/cldc/src/vm/share/handles/StackmapList.hpp b/cldc/src/vm/share/handles/StackmapList.hpp
+index 142dd45..3d80d83 100644
+--- a/cldc/src/vm/share/handles/StackmapList.hpp
++++ b/cldc/src/vm/share/handles/StackmapList.hpp
+@@ -48,12 +48,12 @@ class StackmapList: public Oop {
+ #endif
+   
+   static int entry_stat_offset(int index) {
+-    return entry_count_offset() + sizeof(int) * (index + 1);
++    return StackmapListDesc::header_size() + sizeof(uintptr_t) * index;
+   }
+ 
+  private:
+   inline bool is_valid(int index) {
+-    juint entry = uint_field(entry_stat_offset(index));
++    juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+     return (entry != 0);
+   }
+ 
+@@ -64,23 +64,23 @@ class StackmapList: public Oop {
+   }
+     
+   inline bool is_short_map(int index) { 
+-    juint entry = uint_field(entry_stat_offset(index));
++    juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+     return (bool)((entry & StackmapListDesc::SHORT_ENTRY_FLAG));
+   }
+ 
+   unsigned short get_short_map(unsigned int index) { 
+-    juint entry = uint_field(entry_stat_offset(index));
++    juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+     return (unsigned short)(entry >> 16);
+   }
+ 
+   void set_short_map(int index, unsigned short bitmap) { 
+     GUARANTEE(index < entry_count(),
+               "StackmapList: Illegal attempt to expand entry");
+-    juint entry = uint_field(entry_stat_offset(index));
++    juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+     entry |= StackmapListDesc::SHORT_ENTRY_FLAG; 
+     entry &= 0xFFFF;
+     entry |= (bitmap << 16);
+-    uint_field_put(entry_stat_offset(index), entry);
++    native_address_field_put(entry_stat_offset(index), (address)(uintptr_t)entry);
+     GUARANTEE(is_short_map(index), "StackmapList:Invalid shortmap entry");
+     GUARANTEE(get_short_map(index) == bitmap, 
+               "StackmapList:Invalid short map set");
+@@ -103,7 +103,7 @@ class StackmapList: public Oop {
+ 
+   unsigned short get_stack_height(int index) {
+     if (is_short_map(index)) {
+-      juint entry = uint_field(entry_stat_offset(index));
++      juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+       return (unsigned short)((entry >> 1) & 
+                               StackmapListDesc::SHORT_ENTRY_STACK_HEIGHT_MASK);
+     }else {
+@@ -114,10 +114,10 @@ class StackmapList: public Oop {
+ 
+   void set_stack_height(int index, unsigned short height) {
+     if (is_short_map(index)) {
+-      juint entry = uint_field(entry_stat_offset(index));
++      juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+       GUARANTEE(height <= 0x3, "Invalid map type chosen in set_stack_height");
+       entry |= (height & StackmapListDesc::SHORT_ENTRY_STACK_HEIGHT_MASK) << 1;
+-      uint_field_put(entry_stat_offset(index), entry);
++      native_address_field_put(entry_stat_offset(index), (address)(uintptr_t)entry);
+       GUARANTEE(get_stack_height(index) == height,
+                 "StackmapList:Invalid short stack height");
+     } else {
+@@ -130,7 +130,7 @@ class StackmapList: public Oop {
+ 
+   unsigned short get_locals(int index) { 
+     if (is_short_map(index)) {
+-      juint entry = uint_field(entry_stat_offset(index));
++      juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+       // knock out stackmap and bci
+       entry &= 0x7F;
+       return (unsigned short)(entry >> 3);
+@@ -142,10 +142,10 @@ class StackmapList: public Oop {
+ 
+   void set_locals(int index, unsigned short count) {
+     if (is_short_map(index)) {
+-      juint entry = uint_field(entry_stat_offset(index));
++      juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+       GUARANTEE(count <= 0xF, "Invalid map type chosen in set_locals");
+       entry |= (count << 3);
+-      uint_field_put(entry_stat_offset(index), entry);
++      native_address_field_put(entry_stat_offset(index), (address)(uintptr_t)entry);
+       GUARANTEE(get_locals(index) == count,
+                 "StackmapList:Invalid short locals");    
+     } else {
+@@ -158,7 +158,7 @@ class StackmapList: public Oop {
+ 
+   unsigned short get_bci(int index) { 
+     if (is_short_map(index)) {
+-      juint entry = uint_field(entry_stat_offset(index));
++      juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+       // knock out stackmap
+       entry &= 0xFFFF;
+       return (unsigned short)(entry >> 7);  
+@@ -170,12 +170,12 @@ class StackmapList: public Oop {
+ 
+   void set_bci(int index, unsigned short bci) {
+     if (is_short_map(index)) {
+-      juint entry = uint_field(entry_stat_offset(index));
++      juint entry = (juint)(uintptr_t)native_address_field(entry_stat_offset(index));
+       // clear out existing bci
+       entry &= 0xFFFF007F;
+       // set new bci
+       entry |= (bci << 7);
+-      uint_field_put(entry_stat_offset(index), entry);
++      native_address_field_put(entry_stat_offset(index), (address)(uintptr_t)entry);
+       GUARANTEE(get_bci(index) == bci, "StackmapList:set_bci failed");
+     }  else {
+       TypeArray longmap(obj_field(entry_stat_offset(index))); 
+diff --git a/cldc/src/vm/share/handles/String.hpp b/cldc/src/vm/share/handles/String.hpp
+index 9249241..67fba69 100644
+--- a/cldc/src/vm/share/handles/String.hpp
++++ b/cldc/src/vm/share/handles/String.hpp
+@@ -41,7 +41,7 @@ class String : public Instance {
+     return header_size() + sizeof(jobject);
+   }
+   static int count_offset() {
+-    return header_size() + sizeof(jobject) + sizeof(jint);
++    return header_size() + 2 * sizeof(jobject);
+   }
+ 
+  public:
+diff --git a/cldc/src/vm/share/handles/SymbolTable.cpp b/cldc/src/vm/share/handles/SymbolTable.cpp
+index ce99abd..a4689e7 100644
+--- a/cldc/src/vm/share/handles/SymbolTable.cpp
++++ b/cldc/src/vm/share/handles/SymbolTable.cpp
+@@ -136,7 +136,7 @@ SymbolTable::symbol_for(TypeArray *byte_array, utf8 s, int len,
+       do {
+         old = base[index];
+         if( old == NULL ) break;
+-        const juint *body = ((const juint*)old) + sizeof(OopDesc)/BytesPerWord;
++        const juint *body = (const juint*)((const unsigned char*)old + sizeof(OopDesc));
+         if (blob0 == body[0]) {
+           return (ReturnOop)old;
+         }
+@@ -150,7 +150,7 @@ SymbolTable::symbol_for(TypeArray *byte_array, utf8 s, int len,
+       do {
+         old = base[index];
+         if( old == NULL ) break;
+-        const juint *body = ((const juint*)old) + sizeof(OopDesc)/BytesPerWord;
++        const juint *body = (const juint*)((const unsigned char*)old + sizeof(OopDesc));
+         if( blob0 == body[0] && blob1 == body[1] ) {
+           return (ReturnOop)old;
+         }
+diff --git a/cldc/src/vm/share/handles/Symbols.cpp b/cldc/src/vm/share/handles/Symbols.cpp
+index 771b093..0601d9e 100644
+--- a/cldc/src/vm/share/handles/Symbols.cpp
++++ b/cldc/src/vm/share/handles/Symbols.cpp
+@@ -29,7 +29,7 @@
+ 
+ #if !ROMIZED_PRODUCT
+ 
+-int system_symbols[Symbols::_number_of_system_symbols];
++intptr_t system_symbols[Symbols::_number_of_system_symbols];
+ 
+ #define VM_SYMBOL_REGULAR(name, string)    {string, false},
+ #define VM_SYMBOL_SIGNATURE(name, string)  {string, true},
+@@ -55,7 +55,7 @@ void Symbols::initialize(JVM_SINGLE_ARG_TRAPS) {
+     if (p == NULL) {
+       break;
+     }
+-    system_symbols[i] = (int)p;
++    system_symbols[i] = (intptr_t)p;
+   }
+ }
+ 
+@@ -70,7 +70,7 @@ void Symbols::oops_do(void do_oop(OopDesc**)) {
+ 
+ bool Symbols::is_system_symbol(const OopDesc* symbol) {
+   for (int i = 0; i < _number_of_system_symbols; i++) {
+-    if (system_symbols[i] == (int)symbol) {
++    if (system_symbols[i] == (intptr_t)symbol) {
+       return true;
+     }
+   }
+diff --git a/cldc/src/vm/share/handles/TypeSymbol.cpp b/cldc/src/vm/share/handles/TypeSymbol.cpp
+index 976e570..f6fbedc 100644
+--- a/cldc/src/vm/share/handles/TypeSymbol.cpp
++++ b/cldc/src/vm/share/handles/TypeSymbol.cpp
+@@ -103,8 +103,8 @@ void TypeSymbol::ParseStream::gc_prologue() {
+       if (VerboseGC) {
+         TTY_TRACE_CR(("GC: Updating ParseStream relative pointers"));
+       }
+-      int base = (int)(p->_heap_input->base_address());
+-      int cur  = (int)(p->_current_ptr);
++      intptr_t base=(intptr_t)p->_heap_input->base_address();
++      intptr_t cur=(intptr_t)p->_current_ptr;
+       p->_current_ptr = (char*)(cur - base);
+ 
+       // Mangle it so we can catch errors sooner
+@@ -118,7 +118,7 @@ void TypeSymbol::ParseStream::gc_epilogue() {
+   for (ParseStream*p = _list; p; p=p->_next) {
+     if (p->_heap_input != NULL) {
+       char *base = (char*)(p->_heap_input->base_address());
+-      int pos = (int)p->_current_ptr;
++      intptr_t pos=(intptr_t)p->_current_ptr;
+ 
+       p->_start_ptr = base;
+       p->_current_ptr = base + pos;
+diff --git a/cldc/src/vm/share/handles/WeakRefArray.cpp b/cldc/src/vm/share/handles/WeakRefArray.cpp
+index df56ec2..1bb9aea 100644
+--- a/cldc/src/vm/share/handles/WeakRefArray.cpp
++++ b/cldc/src/vm/share/handles/WeakRefArray.cpp
+@@ -32,9 +32,14 @@ HANDLE_CHECK(WeakRefArray, is_type_array())
+ ReturnOop WeakRefArray::create(int length JVM_TRAPS) {
+   GUARANTEE(length > 0, "Invalid length");
+   // Reserve the first element for null references
+-  Array::Raw array = Universe::new_int_array(length + 1 JVM_CHECK_0);
++  Array::Raw array;
++  if(sizeof(OopDesc*)==sizeof(jlong)) {
++    array=Universe::new_long_array(length+1 JVM_CHECK_0);
++  } else {
++    array=Universe::new_int_array(length+1 JVM_CHECK_0);
++  }
+   address base = array().base_address();
+-  memset(base + sizeof(jint), -1, length * sizeof(jint));
++  memset(base + sizeof(OopDesc*), -1, length * sizeof(OopDesc*));
+   return array.obj();
+ }
+ 
+diff --git a/cldc/src/vm/share/handles/WeakRefArray.hpp b/cldc/src/vm/share/handles/WeakRefArray.hpp
+index ee0f8c7..3b2e1f3 100644
+--- a/cldc/src/vm/share/handles/WeakRefArray.hpp
++++ b/cldc/src/vm/share/handles/WeakRefArray.hpp
+@@ -36,7 +36,7 @@ class WeakRefArray: public Array {
+   }
+ 
+   static bool not_null_or_unused( OopDesc* obj ) {
+-    return unsigned(unsigned(obj)+1) > unsigned(1);
++    return obj != NULL && obj != unused();
+   }
+ 
+   OopDesc** base( void ) const {
+diff --git a/cldc/src/vm/share/interpreter/Bytecodes.cpp b/cldc/src/vm/share/interpreter/Bytecodes.cpp
+index 5328aeb..b427deb 100644
+--- a/cldc/src/vm/share/interpreter/Bytecodes.cpp
++++ b/cldc/src/vm/share/interpreter/Bytecodes.cpp
+@@ -305,7 +305,7 @@ PRODUCT_CONST Bytecodes::BytecodeData Bytecodes::data[] = {
+   def(fast_invokevirtual        , 3, "bjj"  , 0, ""      , NullCheck  | NoPatching),
+   def(fast_invokestatic         , 3, "bjj"  , 0, ""      , Exceptions | NoPatching),
+   def(fast_invokeinterface      , 5, "bjj__", 0, ""      , NullCheck  | NoPatching),
+-  def(fast_invokenative         , 8, "bc__jjjj", 0, ""   , Exceptions | NoFallThru | NoPatching),
++  def(fast_invokenative         , 2 * BytesPerWord, (sizeof(void*)==8 ? "bc______________" : "bc__jjjj"), 0, ""   , Exceptions | NoFallThru | NoPatching),
+   def(fast_invokevirtual_final  , 3, "bjj"  , 0, ""      , NullCheck  | NoPatching),
+   def(fast_invokespecial        , 3, "bjj"  , 0, ""      , NullCheck  | NoPatching),
+   def(fast_new                  , 3, "bii"  , 0, ""      , Exceptions | NoPatching | NeedsFrameExARM | CanRedo),
+diff --git a/cldc/src/vm/share/interpreter/InterpreterRuntime.cpp b/cldc/src/vm/share/interpreter/InterpreterRuntime.cpp
+index 6cc9b74..9ea590e 100644
+--- a/cldc/src/vm/share/interpreter/InterpreterRuntime.cpp
++++ b/cldc/src/vm/share/interpreter/InterpreterRuntime.cpp
+@@ -544,7 +544,7 @@ extern "C" {
+                                         &sender_class, &dummy_declaring_class
+                                         JVM_CHECK_(Bytecodes::_illegal)); 
+     Bytecodes::Code bc = compute_rewrite_bytecode(base, false, is_get, type);
+-    if (::byte_size_for(type) >= BytesPerWord) {
++    if (::byte_size_for(type) >= BytesPerInt) {
+       GUARANTEE(offset % BytesPerWord == 0, "Must be aligned");
+       offset = offset >> LogBytesPerWord;
+     }
+diff --git a/cldc/src/vm/share/memory/ClassInfoDesc.cpp b/cldc/src/vm/share/memory/ClassInfoDesc.cpp
+index aada574..24ff3a6 100644
+--- a/cldc/src/vm/share/memory/ClassInfoDesc.cpp
++++ b/cldc/src/vm/share/memory/ClassInfoDesc.cpp
+@@ -55,10 +55,8 @@ void ClassInfoDesc::variable_oops_do(void do_oop(OopDesc**)) {
+   // itable
+   OopDesc** itable = vtable;
+   OopDesc** itable_end = (OopDesc**) ((address) this + _object_size);
+-  for (i = 0; i < _itable_length; i++) {
+-    itable++;          // skip interface klass_index
+-    itable++;          // skip integer method index
+-  }
++  // The itable header contains two Java ints, not two pointers.
++  itable=(OopDesc**)((address)itable+_itable_length*2*sizeof(jint));
+   while (itable < itable_end) {
+     do_oop(itable++);  // visit interface method
+   }    
+diff --git a/cldc/src/vm/share/memory/ExecutionStackDesc.hpp b/cldc/src/vm/share/memory/ExecutionStackDesc.hpp
+index 6fd11ae..7909b70 100644
+--- a/cldc/src/vm/share/memory/ExecutionStackDesc.hpp
++++ b/cldc/src/vm/share/memory/ExecutionStackDesc.hpp
+@@ -62,9 +62,9 @@ class ExecutionStackDesc: public OopDesc {
+ 
+   // Returns true if the address is within this stack.
+   bool contains(address ptr) {
+-    juint t = (juint) this;
+-    juint p = (juint) ptr;
+-    return ((p - t) < (juint)object_size());
++    uintptr_t t = (uintptr_t) this;
++    uintptr_t p = (uintptr_t) ptr;
++    return ((p - t) < (uintptr_t)object_size());
+   }
+   
+   // update stack list replacing old_stack with new_stack
+diff --git a/cldc/src/vm/share/memory/FinalizerConsDesc.cpp b/cldc/src/vm/share/memory/FinalizerConsDesc.cpp
+index efa7d06..8de8f42 100644
+--- a/cldc/src/vm/share/memory/FinalizerConsDesc.cpp
++++ b/cldc/src/vm/share/memory/FinalizerConsDesc.cpp
+@@ -30,9 +30,8 @@
+ void FinalizerConsDesc::run_finalizer( void ) {
+   void (*native_finalizer)();
+   unsigned char *remember_kni_parameter_base;
+-  
++  JavaOop::Raw r = referent(); // remains rooted until native finalization returns
+   {
+-    JavaOop::Raw r = referent();
+ 
+     if (TraceFinalization) {
+       TTY_TRACE_CR(("TraceGC: finalizer 0x%p retrieved", (void*) r));
+diff --git a/cldc/src/vm/share/memory/LargeObject.hpp b/cldc/src/vm/share/memory/LargeObject.hpp
+index a2181a4..3a7f53e 100644
+--- a/cldc/src/vm/share/memory/LargeObject.hpp
++++ b/cldc/src/vm/share/memory/LargeObject.hpp
+@@ -32,7 +32,7 @@ protected:
+   
+   unsigned _size;
+ 
+-  static void must_be_aligned ( const unsigned x ) {
++  static void must_be_aligned ( const uintptr_t x ) {
+     (void)x;
+ #ifndef PRODUCT
+     GUARANTEE( (x & align_mask) == 0, "must be aligned" );
+@@ -40,7 +40,7 @@ protected:
+   }
+ 
+   static void must_be_aligned ( const void* const x ) {
+-    must_be_aligned( unsigned(x) );
++    must_be_aligned( uintptr_t(x) );
+   }
+ 
+   const LargeObject* next ( const unsigned size ) const {
+diff --git a/cldc/src/vm/share/memory/MethodDesc.cpp b/cldc/src/vm/share/memory/MethodDesc.cpp
+index c33eb7a..52d403c 100644
+--- a/cldc/src/vm/share/memory/MethodDesc.cpp
++++ b/cldc/src/vm/share/memory/MethodDesc.cpp
+@@ -29,7 +29,7 @@
+ 
+ void MethodDesc::relocate_variable_part(int delta) {
+   GUARANTEE(ObjectHeap::contains((OopDesc*)this), "sanity");
+-  _variable_part = (MethodVariablePart*)(int(_variable_part) + delta);
++  _variable_part = DERIVED(MethodVariablePart*,_variable_part,delta);
+ }
+ 
+ #if ENABLE_METHOD_TRAPS
+diff --git a/cldc/src/vm/share/memory/ObjectHeap.cpp b/cldc/src/vm/share/memory/ObjectHeap.cpp
+index b87e0ec..4b62b0b 100644
+--- a/cldc/src/vm/share/memory/ObjectHeap.cpp
++++ b/cldc/src/vm/share/memory/ObjectHeap.cpp
+@@ -1470,7 +1470,7 @@ OopDesc* ObjectHeap::allocate(size_t size JVM_TRAPS) {
+   }
+ #endif
+ 
+-  GUARANTEE((int)_inline_allocation_top % 4 == 0, "Sanity");
++  GUARANTEE((uintptr_t)_inline_allocation_top % 4 == 0, "Sanity");
+   PERFORMANCE_COUNTER_INCREMENT(num_of_c_alloc_objs, 1);
+ 
+ #if ENABLE_ISOLATES
+@@ -1957,7 +1957,7 @@ size_t ObjectHeap::update_slices_size(size_t object_heap_size) {
+   // to heap start
+   size_t near_bits = 0;
+   size_t s;
+-  for (s = (object_heap_size - 1) >> 2; s != 0; s >>= 1) {
++  for (s = (object_heap_size - 1) >> LogBytesPerWord; s != 0; s >>= 1) {
+     near_bits++;
+   }
+ 
+@@ -1998,7 +1998,7 @@ bool ObjectHeap::adjust_heap_size(size_t target_heap_size) {
+       MimimumMarkingStackSize * sizeof(OopDesc *);
+   must_be_aligned(minimum_marking_stack_size);
+ 
+-  const size_t bitvector_size = target_heap_size/BitsPerWord;
++  const size_t bitvector_size = target_heap_size/(BytesPerWord*BitsPerByte);
+ 
+   // Note: the order of the next two lines is important (each call changes
+   // _near_mask, etc.)
+@@ -2023,7 +2023,7 @@ bool ObjectHeap::adjust_heap_size(size_t target_heap_size) {
+       // distinction between 'reserving' and 'committing' memory, you should
+       // always set HeapMin=_heap_capacity.
+       max_heap = extra_size + _heap_capacity + minimum_marking_stack_size;
+-      max_bitv = _heap_capacity/BitsPerWord + max_slices_size;
++      max_bitv = _heap_capacity/(BytesPerWord*BitsPerByte) + max_slices_size;
+ 
+       // This should always hold up, unless the calculation for
+       // slices_size is changed.
+@@ -2062,8 +2062,8 @@ bool ObjectHeap::adjust_heap_size(size_t target_heap_size) {
+     _last_heap_expansion_failed = false;
+   }
+ 
+-  must_be_aligned( unsigned(_heap_chunk));
+-  must_be_aligned( unsigned(_bitv_chunk));
++  must_be_aligned( uintptr_t(_heap_chunk));
++  must_be_aligned( uintptr_t(_bitv_chunk));
+ 
+   _heap_size       = target_heap_size;
+   _heap_start      = DERIVED(OopDesc**, _heap_chunk, extra_size);
+@@ -2076,7 +2076,8 @@ bool ObjectHeap::adjust_heap_size(size_t target_heap_size) {
+   _slices_start     = (OopDesc***) (_bitvector_start + bitvector_size);
+ 
+   _bitvector_base =
+-      _bitvector_start - (((uintptr_t)_heap_start >> 2) / BitsPerByte);
++      ENABLE_C_INTERPRETER ? _bitvector_start :
++      _bitvector_start - (((uintptr_t)_heap_start >> LogBytesPerWord) / BitsPerByte);
+ 
+   _young_generation_target_size = 
+      align_size_up(_heap_size/YoungGenerationTarget, BytesPerWord);
+@@ -2579,10 +2580,10 @@ inline size_t ObjectHeap::rom_offset_of(OopDesc* obj) {
+ inline OopDesc* ObjectHeap::rom_oop_from_offset(size_t offset,
+                                                 const QuickVars& qv) {
+   if ((offset & 0x1) == 0) {
+-    return (OopDesc*)(int(qv.rom_text_start) + offset);
++    return (OopDesc*)(intptr_t(qv.rom_text_start) + offset);
+   } else {
+     offset --;
+-    return (OopDesc*)(int(qv.rom_data_start) + offset);
++    return (OopDesc*)(intptr_t(qv.rom_data_start) + offset);
+   }
+ }
+ 
+@@ -2591,11 +2592,11 @@ inline OopDesc* ObjectHeap::rom_oop_from_offset(size_t offset) {
+ #if ENABLE_SEGMENTED_ROM_TEXT_BLOCK
+     return (OopDesc*)(int(ROM::min_text_seg_addr()) + offset);
+ #else
+-    return (OopDesc*)(int(_rom_text_block) + offset);
++    return (OopDesc*)(intptr_t(_rom_text_block) + offset);
+ #endif
+   } else {
+     offset --;
+-    return (OopDesc*)(int(_rom_data_block) + offset);
++    return (OopDesc*)(intptr_t(_rom_data_block) + offset);
+   }
+ }
+ #endif // !ENABLE_HEAP_NEARS_IN_HEAP 
+@@ -2893,7 +2894,7 @@ inline void ObjectHeap::update_execution_stack_interior_pointers() {
+       // This is a stack that is about to be relocated;
+       ExecutionStackDesc* destination =
+         (ExecutionStackDesc*)decode_destination((OopDesc*)this_stack);
+-      int delta = (int)destination - (int)this_stack;
++      int delta = DISTANCE(this_stack,destination);
+ 
+       if (TraceGC) {
+         TTY_TRACE_CR(("TraceGC: Stack 0x%x relocated => 0x%x",
+@@ -3035,7 +3036,7 @@ void ObjectHeap::write_barrier_oops_update_moving_object_interior_pointers(
+ 
+ #if ENABLE_COMPILER
+       if (instance_size == InstanceSize::size_compiled_method) {
+-        int delta = (int)destination - (int)p;
++        int delta = DISTANCE(p,destination);
+         ((CompiledMethodDesc*) p)->update_relative_offsets(delta);
+       }
+ #endif
+@@ -3043,7 +3044,7 @@ void ObjectHeap::write_barrier_oops_update_moving_object_interior_pointers(
+       ((OopDesc*) p)->oops_do_for(far_class, update_interior_pointer);
+ 
+       if (instance_size == InstanceSize::size_method) {
+-        int delta = (int)destination - (int)p;
++        int delta = DISTANCE(p,destination);
+         ((MethodDesc*) p)->relocate_variable_part(delta);
+       }
+     }
+@@ -3964,7 +3965,7 @@ OopDesc* ObjectHeap::decode_near(OopDesc* obj, const QuickVars& qv ) {
+     n = (OopDesc*)((OopDesc**) qv.heap_start + near_offset);
+     GUARANTEE(contains(n), "must be in heap");
+ #else
+-  if (((int) klass) >= 0) {
++  if (((int32_t)(uintptr_t)klass) >= 0) {
+     // bit 31 is not set -- this means we're in heap
+ 
+     // Lower bits contains relative offset to heap start
+@@ -3995,7 +3996,7 @@ inline OopDesc* ObjectHeap::decode_near(OopDesc* obj, OopDesc **heap_start,
+     n = (OopDesc*)((OopDesc**) heap_start + near_offset);
+     GUARANTEE(contains(n), "must be in heap");
+ #else
+-  if (((int) klass) >= 0) {
++  if (((int32_t)(uintptr_t)klass) >= 0) {
+     // bit 31 is not set -- this means we're in heap
+ 
+     // Lower bits contains relative offset to heap start
+@@ -5239,7 +5240,7 @@ inline void* ObjectHeap::set_heap_limit( void* new_heap_limit ) {
+   if( !in_use && _heap_min == _heap_capacity ) {
+     in_use = true;
+ 
+-    new_heap_limit = (void*)align_down(unsigned(new_heap_limit));
++    new_heap_limit = (void*)align_down(uintptr_t(new_heap_limit));
+ #ifdef AZZERT
+     const size_t minimum_marking_stack_size = DISTANCE(_heap_top, _heap_limit);
+     GUARANTEE(minimum_marking_stack_size
+@@ -5334,7 +5335,7 @@ void ObjectHeap::save_java_stack_snapshot() {
+ void ObjectHeap::print(Stream* st) {
+   st->print_cr("Object heap       [0x%x,0x%x), %d bytes", 
+                                    _heap_start, _heap_top,
+-                                   int(_heap_top) - int(_heap_start));
++                                   DISTANCE(_heap_start,_heap_top));
+   st->print_cr("total/free bytes    [%d,%d]", total_memory(), free_memory());
+   st->print_cr("- Collection area   [0x%x,0x%x, 0x%x)",
+     _collection_area_start, _inline_allocation_top, _inline_allocation_end);
+@@ -5345,7 +5346,7 @@ void ObjectHeap::print(Stream* st) {
+   st->print_cr("Min marking stack   [0x%x,0x%x)", _heap_top, _bitvector_start);
+   st->print_cr("Bit vector          [0x%x,0x%x), %d bytes",
+                                   _bitvector_start, _slices_start,
+-                                  int(_slices_start) - int(_bitvector_start));
++                                  DISTANCE(_bitvector_start,_slices_start));
+   st->print_cr("Slices start      0x%x",        _slices_start);
+   st->print_cr("Slice size        %d",          _slice_size);
+   st->print_cr("Number of slices  %d (=%d bytes)", _nof_slices,
+diff --git a/cldc/src/vm/share/memory/ObjectHeap.hpp b/cldc/src/vm/share/memory/ObjectHeap.hpp
+index 5e4b1c0..216c160 100644
+--- a/cldc/src/vm/share/memory/ObjectHeap.hpp
++++ b/cldc/src/vm/share/memory/ObjectHeap.hpp
+@@ -767,7 +767,11 @@ private:
+   // Bitvector access implementation
+   static unsigned oop_index (OopDesc** p) {
+     GUARANTEE(contains(p), "Should be in object heap");
+-    return unsigned(p) >> LogBytesPerWord;
++    #if ENABLE_C_INTERPRETER
++    return (unsigned)ps3me_heap_slot_index((uintptr_t)_heap_start,(uintptr_t)p,LogBytesPerWord);
++#else
++    return (uintptr_t)p >> LogBytesPerWord;
++#endif
+   }
+ 
+   static unsigned bitvector_word_index  (const unsigned i) {
+@@ -923,16 +927,16 @@ private:
+   static OopDesc** align_down ( OopDesc** p ) {
+     return (OopDesc**) align_size_down((size_t)p, alignment);
+   }
+-  static unsigned align_down ( const unsigned n ) {
++  static unsigned align_down ( const uintptr_t n ) {
+     return align_size_down(n, alignment);
+   }
+   static OopDesc** align_up ( OopDesc** p ) {
+     return (OopDesc**) align_size_up((size_t)p, alignment);
+   }
+-  static unsigned align_up ( const unsigned n ) {
++  static unsigned align_up ( const uintptr_t n ) {
+     return align_size_up(n, alignment);
+   }
+-  static void must_be_aligned( const unsigned n ) {
++  static void must_be_aligned( const uintptr_t n ) {
+     (void)n;
+     GUARANTEE_R( n % alignment == 0, "must be aligned" );    
+   }
+@@ -940,7 +944,7 @@ public:
+   static juint* get_bitvectorword_for_aligned(OopDesc** p) {
+     AZZERT_ONLY(verify_bitvector_alignment(p));
+     return DERIVED(juint*, _bitvector_base,
+-                     ((uintptr_t)p) >> (LogBytesPerWord+LogBitsPerByte));
++                     (ENABLE_C_INTERPRETER ? ps3me_bitmap_byte_offset((uintptr_t)_heap_start,(uintptr_t)p,LogBytesPerWord) : ((uintptr_t)p) >> (LogBytesPerWord+LogBitsPerByte)));
+   }
+ private:
+   static juint* get_bitvectorword_for_unaligned(OopDesc** p) {
+@@ -948,8 +952,9 @@ private:
+   }
+ 
+   static OopDesc** get_aligned_for_bitvectorword(juint *ptr) {
+-    return (OopDesc**)
+-        (DISTANCE(_bitvector_base, ptr) << (LogBytesPerWord + LogBitsPerByte));
++    return (OopDesc**)(ENABLE_C_INTERPRETER
++      ? ps3me_heap_address_for_bitmap_byte((uintptr_t)_heap_start,DISTANCE(_bitvector_base,ptr),LogBytesPerWord)
++      : (DISTANCE(_bitvector_base,ptr) << (LogBytesPerWord+LogBitsPerByte)));
+   }
+   static void write_barrier_oops_do(void do_oop(OopDesc**),
+                                     OopDesc** start, OopDesc** end);
+@@ -1219,15 +1224,15 @@ inline unsigned int* word_for(unsigned int offset, unsigned int* map) {
+ }
+ 
+ inline void bit_clear(unsigned int offset, unsigned int* map) {
+-  intptr_t* w = (intptr_t*)word_for(offset, map);
++  juint* w = (juint*)word_for(offset, map);
+   int pos = offset%BitsPerWord;
+-  clear_nth_bit(*w, pos);
++  *w &= ~(juint(1) << pos);
+ }
+ 
+ inline void bit_set(unsigned int offset, unsigned int* map) {
+-  intptr_t* w = (intptr_t*)word_for(offset, map);
++  juint* w = (juint*)word_for(offset, map);
+   int pos = offset%BitsPerWord;
+-  set_nth_bit(*w, pos);
++  *w |= juint(1) << pos;
+ }
+ 
+ inline bool is_bit_set(unsigned int offset, unsigned int* map) {
+diff --git a/cldc/src/vm/share/memory/OopDesc.cpp b/cldc/src/vm/share/memory/OopDesc.cpp
+index 1c9392d..5e737ac 100644
+--- a/cldc/src/vm/share/memory/OopDesc.cpp
++++ b/cldc/src/vm/share/memory/OopDesc.cpp
+@@ -41,9 +41,10 @@ size_t OopDesc::object_size_for(const FarClassDesc* blueprint) const {
+     return ((ArrayDesc*)this)->object_size(1);
+   case InstanceSize::size_type_array_2:  
+     return ((ArrayDesc*)this)->object_size(2);
+-  case InstanceSize::size_type_array_4:  
+-  case InstanceSize::size_obj_array:
++  case InstanceSize::size_type_array_4:
+     return ((ArrayDesc*)this)->object_size(4);
++  case InstanceSize::size_obj_array:
++    return ((ArrayDesc*)this)->object_size(sizeof(OopDesc*));
+   case InstanceSize::size_type_array_8:  
+     return ((ArrayDesc*)this)->object_size(8);
+     
+diff --git a/cldc/src/vm/share/memory/StackmapListDesc.cpp b/cldc/src/vm/share/memory/StackmapListDesc.cpp
+index 71af9fd..a7b650d 100644
+--- a/cldc/src/vm/share/memory/StackmapListDesc.cpp
++++ b/cldc/src/vm/share/memory/StackmapListDesc.cpp
+@@ -42,11 +42,11 @@ void StackmapListDesc::initialize(OopDesc* klass, int size) {
+ }
+ 
+ void StackmapListDesc::variable_oops_do(void do_oop(OopDesc**)) {
+-  unsigned int* entries = stackmap_entries_base();
+-  unsigned int* end = entries + _entry_count;
++  uintptr_t* entries = stackmap_entries_base();
++  uintptr_t* end = entries + _entry_count;
+ 
+   while (entries < end) {
+-    unsigned int _entry_stat = *entries;
++    uintptr_t _entry_stat = *entries;
+     if (!(_entry_stat & SHORT_ENTRY_FLAG)) {
+       do_oop((OopDesc**)entries);
+     }
+diff --git a/cldc/src/vm/share/memory/StackmapListDesc.hpp b/cldc/src/vm/share/memory/StackmapListDesc.hpp
+index 0fefd8b..b545d74 100644
+--- a/cldc/src/vm/share/memory/StackmapListDesc.hpp
++++ b/cldc/src/vm/share/memory/StackmapListDesc.hpp
+@@ -31,7 +31,7 @@ class StackmapListDesc: public OopDesc {
+   // Computes the allocation size
+   static size_t allocation_size(int length) { 
+     // each stackmap entry consists of a data integer/pointer
+-    return align_allocation_size(header_size() + length * sizeof(int));
++    return align_allocation_size(header_size() + length * sizeof(uintptr_t));
+   }
+   
+  public:
+@@ -49,8 +49,8 @@ class StackmapListDesc: public OopDesc {
+   void initialize(OopDesc* klass, jint size);
+ 
+   // Offset of the first stackmap entry
+-  unsigned int* stackmap_entries_base() {
+-    return ((unsigned int*) this) + (header_size()/sizeof(int));
++  uintptr_t* stackmap_entries_base() {
++    return (uintptr_t*)((address)this + header_size());
+   }
+ 
+   // Number of stackmaps stored in this entry
+diff --git a/cldc/src/vm/share/memory/ThreadDesc.hpp b/cldc/src/vm/share/memory/ThreadDesc.hpp
+index eed1a63..80276d6 100644
+--- a/cldc/src/vm/share/memory/ThreadDesc.hpp
++++ b/cldc/src/vm/share/memory/ThreadDesc.hpp
+@@ -68,12 +68,12 @@ class ThreadDesc: public ThreadDescPointers {
+ 
+  private:
+   jint         _id;                    // Thread ID for debugging purposes.
+-  jint         _last_java_sp_or_frame; // (arm) pointer to the last
++  address         _last_java_sp_or_frame; // (arm) pointer to the last
+                                        //       java frame descriptor
+                                        //       (fp, sp, pc) on the stack
+                                        // (x86) Contains the last java
+                                        //       stack pointer.
+-  jint         _last_java_fp;          // (x86 only) Contains the last
++  address         _last_java_fp;          // (x86 only) Contains the last
+                                        //  java frame pointer.
+   jint         _async_redo;            // Set to non-zero if
+                                        // a native method needs redoing
+@@ -84,9 +84,9 @@ class ThreadDesc: public ThreadDescPointers {
+    // must be 8-byte-aligned on all platforms!
+   jlong        _wakeup_time;           // When sleeping, contains the
+                                        // wake-up time.
+-  jint         _stack_limit;           // The current stack limit for
++  address         _stack_limit;           // The current stack limit for
+                                        //  this thread.
+-  jint         _stack_pointer;         // Points to the stack pointer
++  address         _stack_pointer;         // Points to the stack pointer
+ 
+   jint         _status;                // used by the debugger code
+   jint         _suspend_count;         // used by debugger code
+diff --git a/cldc/src/vm/share/natives/KniUncommon.cpp b/cldc/src/vm/share/natives/KniUncommon.cpp
+index 58e36e7..64cf881 100644
+--- a/cldc/src/vm/share/natives/KniUncommon.cpp
++++ b/cldc/src/vm/share/natives/KniUncommon.cpp
+@@ -52,31 +52,31 @@ KNIEXPORT jboolean KNI_GetBooleanField(jobject objectHandle, jfieldID fieldID)
+ {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetBooleanField");
+-  return *object->bool_field_addr((int)fieldID);
++  return *object->bool_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ KNIEXPORT jbyte KNI_GetByteField(jobject objectHandle, jfieldID fieldID) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetByteField");
+-  return *object->byte_field_addr((int)fieldID);
++  return *object->byte_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ KNIEXPORT jchar KNI_GetCharField(jobject objectHandle, jfieldID fieldID) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetCharField");
+-  return *object->char_field_addr((int)fieldID);
++  return *object->char_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ KNIEXPORT jshort KNI_GetShortField(jobject objectHandle, jfieldID fieldID) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetShortField");
+-  return *object->short_field_addr((int)fieldID);
++  return *object->short_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ KNIEXPORT jlong KNI_GetLongField(jobject objectHandle, jfieldID fieldID) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetLongField");
+-  return *object->long_field_addr((int)fieldID);
++  return *object->long_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ #if ENABLE_FLOAT
+@@ -84,13 +84,13 @@ KNIEXPORT jlong KNI_GetLongField(jobject objectHandle, jfieldID fieldID) {
+ KNIEXPORT jfloat KNI_GetFloatField(jobject objectHandle, jfieldID fieldID) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetFloatField");
+-  return *object->float_field_addr((int)fieldID);
++  return *object->float_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ KNIEXPORT jdouble KNI_GetDoubleField(jobject objectHandle, jfieldID fieldID) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetDoubleField");
+-  return *object->double_field_addr((int)fieldID);
++  return *object->double_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ #endif // ENABLE_FLOAT
+@@ -99,42 +99,42 @@ KNIEXPORT void
+ KNI_SetBooleanField(jobject objectHandle, jfieldID fieldID, jboolean value) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetBooleanField");
+-  *object->bool_field_addr((int)fieldID) = value;
++  *object->bool_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetByteField(jobject objectHandle, jfieldID fieldID, jbyte value) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetByteField");
+-  *object->byte_field_addr((int)fieldID) = value;
++  *object->byte_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetCharField(jobject objectHandle, jfieldID fieldID, jchar value) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetCharField");
+-  *object->char_field_addr((int)fieldID) = value;
++  *object->char_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetShortField(jobject objectHandle, jfieldID fieldID, jshort value) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetShortField");
+-  *object->short_field_addr((int)fieldID) = value;
++  *object->short_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetIntField(jobject objectHandle, jfieldID fieldID, jint value) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetIntField");
+-  *object->int_field_addr((int)fieldID) = value;
++  *object->int_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetLongField(jobject objectHandle, jfieldID fieldID, jlong value) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetLongField");
+-  *object->long_field_addr((int)fieldID) = value;
++  *object->long_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ #if ENABLE_FLOAT
+@@ -143,14 +143,14 @@ KNIEXPORT void
+ KNI_SetFloatField(jobject objectHandle, jfieldID fieldID, jfloat value) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetFloatField");
+-  *object->float_field_addr((int)fieldID) = value;
++  *object->float_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetDoubleField(jobject objectHandle, jfieldID fieldID, jdouble value) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetDoubleField");
+-  *object->double_field_addr((int)fieldID) = value;
++  *object->double_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ #endif // ENABLE_FLOAT
+@@ -166,33 +166,33 @@ KNIEXPORT jfieldID KNI_GetStaticFieldID(jclass classHandle, const char* name,
+ KNIEXPORT jboolean
+ KNI_GetStaticBooleanField(jclass classHandle, jfieldID fieldID) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  return (jboolean) (*static_vars->int_field_addr((int)fieldID));
++  return (jboolean) (*static_vars->int_field_addr((int)(intptr_t)fieldID));
+ }
+ 
+ KNIEXPORT jbyte KNI_GetStaticByteField(jclass classHandle, jfieldID fieldID) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  return (jbyte) (*static_vars->int_field_addr((int)fieldID));
++  return (jbyte) (*static_vars->int_field_addr((int)(intptr_t)fieldID));
+ }
+ 
+ KNIEXPORT jchar KNI_GetStaticCharField(jclass classHandle, jfieldID fieldID) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  return (jchar) (*static_vars->uint_field_addr((int)fieldID));
++  return (jchar) (*static_vars->uint_field_addr((int)(intptr_t)fieldID));
+ }
+ 
+ KNIEXPORT jshort KNI_GetStaticShortField(jclass classHandle, jfieldID fieldID)
+ {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  return (jshort) (*static_vars->int_field_addr((int)fieldID));
++  return (jshort) (*static_vars->int_field_addr((int)(intptr_t)fieldID));
+ }
+ 
+ KNIEXPORT jint KNI_GetStaticIntField(jclass classHandle, jfieldID fieldID) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  return *static_vars->int_field_addr((int)fieldID);
++  return *static_vars->int_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ KNIEXPORT jlong KNI_GetStaticLongField(jclass classHandle, jfieldID fieldID) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  return *static_vars->long_field_addr((int)fieldID);
++  return *static_vars->long_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ #if ENABLE_FLOAT
+@@ -200,13 +200,13 @@ KNIEXPORT jlong KNI_GetStaticLongField(jclass classHandle, jfieldID fieldID) {
+ KNIEXPORT jfloat KNI_GetStaticFloatField(jclass classHandle, jfieldID fieldID)
+ {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  return *static_vars->float_field_addr((int)fieldID);
++  return *static_vars->float_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ KNIEXPORT jdouble
+ KNI_GetStaticDoubleField(jclass classHandle, jfieldID fieldID) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  return *static_vars->double_field_addr((int)fieldID);
++  return *static_vars->double_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ #endif // ENABLE_FLOAT
+@@ -218,37 +218,37 @@ KNIEXPORT void
+ KNI_SetStaticBooleanField(jclass classHandle, jfieldID fieldID, jboolean value)
+ {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  *static_vars->int_field_addr((int)fieldID) = (jint)value;
++  *static_vars->int_field_addr((int)(intptr_t)fieldID) = (jint)value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetStaticByteField(jclass classHandle, jfieldID fieldID, jbyte value) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  *static_vars->int_field_addr((int)fieldID) = (jint)value;
++  *static_vars->int_field_addr((int)(intptr_t)fieldID) = (jint)value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetStaticCharField(jclass classHandle, jfieldID fieldID, jchar value) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  *static_vars->uint_field_addr((int)fieldID) = (juint)value;
++  *static_vars->uint_field_addr((int)(intptr_t)fieldID) = (juint)value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetStaticShortField(jclass classHandle, jfieldID fieldID, jshort value) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  *static_vars->int_field_addr((int)fieldID) = (jint)value;
++  *static_vars->int_field_addr((int)(intptr_t)fieldID) = (jint)value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetStaticIntField(jclass classHandle, jfieldID fieldID, jint value) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  *static_vars->int_field_addr((int)fieldID) = value;
++  *static_vars->int_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetStaticLongField(jclass classHandle, jfieldID fieldID, jlong value) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  *static_vars->long_field_addr((int)fieldID) = value;
++  *static_vars->long_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ #if ENABLE_FLOAT
+@@ -256,13 +256,13 @@ KNI_SetStaticLongField(jclass classHandle, jfieldID fieldID, jlong value) {
+ KNIEXPORT void
+ KNI_SetStaticFloatField(jclass classHandle, jfieldID fieldID, jfloat value) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  *static_vars->float_field_addr((int)fieldID) = value;
++  *static_vars->float_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ KNIEXPORT void
+ KNI_SetStaticDoubleField(jclass classHandle, jfieldID fieldID, jdouble value) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  *static_vars->double_field_addr((int)fieldID) = value;
++  *static_vars->double_field_addr((int)(intptr_t)fieldID) = value;
+ }
+ 
+ #endif // ENABLE_FLOAT
+@@ -270,12 +270,12 @@ KNI_SetStaticDoubleField(jclass classHandle, jfieldID fieldID, jdouble value) {
+ KNIEXPORT void KNI_GetStaticObjectField(jclass classHandle, jfieldID fieldID,
+                                         jobject toHandle) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  kni_set_handle(toHandle, *static_vars->obj_field_addr((int)fieldID));
++  kni_set_handle(toHandle, *static_vars->obj_field_addr((int)(intptr_t)fieldID));
+ }
+ 
+ KNIEXPORT void KNI_SetStaticObjectField(jclass classHandle, jfieldID fieldID,
+                                         jobject fromHandle) {
+   OopDesc* static_vars = (OopDesc*)kni_get_java_class_statics(classHandle);
+-  oop_write_barrier(static_vars->obj_field_addr((int)fieldID),
++  oop_write_barrier(static_vars->obj_field_addr((int)(intptr_t)fieldID),
+                    kni_read_handle(fromHandle));
+ }
+diff --git a/cldc/src/vm/share/natives/kni.cpp b/cldc/src/vm/share/natives/kni.cpp
+index c94e337..976fb4a 100644
+--- a/cldc/src/vm/share/natives/kni.cpp
++++ b/cldc/src/vm/share/natives/kni.cpp
+@@ -264,7 +264,7 @@ KNIEXPORT void
+ KNI_GetObjectField(jobject objectHandle, jfieldID fieldID, jobject toHandle) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetObjectField");
+-  kni_set_handle(toHandle, *object->obj_field_addr((int)fieldID));
++  kni_set_handle(toHandle, *object->obj_field_addr((int)(intptr_t)fieldID));
+ }
+ 
+ KNIEXPORT void
+@@ -272,14 +272,14 @@ KNI_SetObjectField(jobject objectHandle, jfieldID fieldID, jobject fromHandle)
+ {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_SetObjectField");
+-  oop_write_barrier(object->obj_field_addr((int)fieldID),
++  oop_write_barrier(object->obj_field_addr((int)(intptr_t)fieldID),
+                     kni_read_handle(fromHandle));
+ }
+ 
+ KNIEXPORT jint KNI_GetIntField(jobject objectHandle, jfieldID fieldID) {
+   OopDesc* object = kni_read_handle(objectHandle);
+   GUARANTEE(object != 0, "null argument to KNI_GetIntField");
+-  return *object->int_field_addr((int)fieldID);
++  return *object->int_field_addr((int)(intptr_t)fieldID);
+ }
+ 
+ //
+@@ -497,33 +497,33 @@ static inline address parameter_address(const int index) {
+ 
+ KNIEXPORT jboolean KNI_GetParameterAsBoolean(jint index) {
+   GUARANTEE(!_in_kvm_native_method, "sanity");
+-  return (jboolean)(*(jint*)parameter_address(index));
++  return (jboolean)(ps3me_slot_read_int(parameter_address(index)));
+ }
+ 
+ KNIEXPORT jbyte KNI_GetParameterAsByte(jint index) {
+   GUARANTEE(!_in_kvm_native_method, "sanity");
+-  return (jbyte)(*(jint*)parameter_address(index));
++  return (jbyte)(ps3me_slot_read_int(parameter_address(index)));
+ }
+ 
+ KNIEXPORT jchar KNI_GetParameterAsChar(jint index) {
+   GUARANTEE(!_in_kvm_native_method, "sanity");
+-  return (jchar)(*(jint*)parameter_address(index));
++  return (jchar)(ps3me_slot_read_int(parameter_address(index)));
+ }
+ 
+ KNIEXPORT jshort KNI_GetParameterAsShort(jint index) {
+   GUARANTEE(!_in_kvm_native_method, "sanity");
+-  return (jshort)(*(jint*)parameter_address(index));
++  return (jshort)(ps3me_slot_read_int(parameter_address(index)));
+ }
+ 
+ KNIEXPORT jint KNI_GetParameterAsInt(jint index) {
+   GUARANTEE(!_in_kvm_native_method, "sanity");
+-  return *(jint*)parameter_address(index);
++  return ps3me_slot_read_int(parameter_address(index));
+ }
+ 
+ KNIEXPORT jlong KNI_GetParameterAsLong(jint index) {
+   GUARANTEE(!_in_kvm_native_method, "sanity");
+-  jint AA = *(jint*)parameter_address(index);
+-  jint BB = *(jint*)parameter_address(index+1);
++  jint AA = ps3me_slot_read_int(parameter_address(index));
++  jint BB = ps3me_slot_read_int(parameter_address(index+1));
+ 
+   if (JavaStackDirection < 0) {
+     GUARANTEE(parameter_address(index+1) < parameter_address(index), "Sanity");
+@@ -538,7 +538,7 @@ KNIEXPORT jlong KNI_GetParameterAsLong(jint index) {
+ 
+ KNIEXPORT jfloat KNI_GetParameterAsFloat(jint index) {
+   GUARANTEE(!_in_kvm_native_method, "sanity");
+-  jint j = *(jint*)parameter_address(index);
++  jint j = ps3me_slot_read_int(parameter_address(index));
+   union {
+     jfloat output;
+     jint input;
+diff --git a/cldc/src/vm/share/runtime/BufferedFile.cpp b/cldc/src/vm/share/runtime/BufferedFile.cpp
+index e3a5050..a946e17 100644
+--- a/cldc/src/vm/share/runtime/BufferedFile.cpp
++++ b/cldc/src/vm/share/runtime/BufferedFile.cpp
+@@ -46,7 +46,7 @@ void BufferedFile::init()
+ }
+ 
+ void BufferedFile::set_file_pointer(OsFile_Handle val) {
+-  int_field_put(file_pointer_offset(), (int)val);
++  native_address_field_put(file_pointer_offset(),(address)val);
+ }
+ 
+ #if NOT_CURRENTLY_USED
+diff --git a/cldc/src/vm/share/runtime/BufferedFile.hpp b/cldc/src/vm/share/runtime/BufferedFile.hpp
+index 3364196..eb91931 100644
+--- a/cldc/src/vm/share/runtime/BufferedFile.hpp
++++ b/cldc/src/vm/share/runtime/BufferedFile.hpp
+@@ -92,11 +92,11 @@ public:
+     bool_field_put(on_native_heap_offset(), val);
+   }
+   OsFile_Handle file_pointer() {
+-    return (OsFile_Handle)int_field(file_pointer_offset());
++    return (OsFile_Handle)native_address_field(file_pointer_offset());
+   }
+ #ifdef AZZERT
+   void junk_file_pointer() {
+-    int_field_put(file_pointer_offset(), -1);       
++    native_address_field_put(file_pointer_offset(),(address)(intptr_t)-1);       
+   }
+ #endif
+ 
+diff --git a/cldc/src/vm/share/runtime/ClassFileParser.cpp b/cldc/src/vm/share/runtime/ClassFileParser.cpp
+index 25df7d5..8f252a9 100644
+--- a/cldc/src/vm/share/runtime/ClassFileParser.cpp
++++ b/cldc/src/vm/share/runtime/ClassFileParser.cpp
+@@ -104,8 +104,8 @@ void ClassFileParser::gc_epilogue() {
+   for (ClassFileParser* cfp = _head; cfp != NULL; cfp = cfp->previous()) {
+     // change from offset back to direct pointer to _buffer
+     jubyte *base = (jubyte*)(cfp->_buffer->base_address());
+-    cfp->_bufptr = base + (int)(cfp->_bufptr);
+-    cfp->_bufend = base + (int)(cfp->_bufend);
++    cfp->_bufptr = base + (intptr_t)(cfp->_bufptr);
++    cfp->_bufend = base + (intptr_t)(cfp->_bufend);
+   }
+ }
+ 
+@@ -1634,7 +1634,7 @@ inline void ClassFileParser::clone_invoke_special_virtual_conflicts(
+     TypeArray::array_copy(&old_tags, 0, &new_tags, 0, cp_length);
+     const void* old_cp_base_address = old_cp->base_address();
+     void* new_cp_base_address = new_cp->base_address();
+-    jvm_memcpy(new_cp_base_address, old_cp_base_address, cp_length*sizeof(int));
++    jvm_memcpy(new_cp_base_address, old_cp_base_address, cp_length * BytesPerWord);
+   }
+   {    
+     for( int i = 0; i < map_size; i+=2 ) {
+@@ -2169,7 +2169,7 @@ void ClassFileParser::p() {
+ void ClassFileParser::print_on(Stream *st) {
+ #if USE_DEBUG_PRINTING
+   (void)st;
+-  tty->print_cr("ClassFileParser (StackObj) = 0x%x", (int)this);
++  tty->print_cr("ClassFileParser (StackObj) = 0x%x", (int)(uintptr_t)this);
+   tty->print_cr("  _pos      = %d", get_buffer_position());
+   tty->print_cr("  _buffer   = 0x%x", _buffer->obj());
+   tty->print   ("  _name     = ");
+diff --git a/cldc/src/vm/share/runtime/FileDecoder.hpp b/cldc/src/vm/share/runtime/FileDecoder.hpp
+index 85bbd69..a37bba5 100644
+--- a/cldc/src/vm/share/runtime/FileDecoder.hpp
++++ b/cldc/src/vm/share/runtime/FileDecoder.hpp
+@@ -64,10 +64,10 @@ protected:
+ public:
+   OsFile_Handle file_handle() {
+     guarantee_jar_file_handle();
+-    return (OsFile_Handle) int_field(file_handle_offset());
++    return (OsFile_Handle) native_address_field(file_handle_offset());
+   }
+   void set_file_handle(OsFile_Handle value) {
+-    int_field_put(file_handle_offset(), (int) value);
++    native_address_field_put(file_handle_offset(),(address)value);
+   }
+ 
+   ReturnOop jar_file_name() {
+diff --git a/cldc/src/vm/share/runtime/Frame.cpp b/cldc/src/vm/share/runtime/Frame.cpp
+index fbc97e1..8624373 100644
+--- a/cldc/src/vm/share/runtime/Frame.cpp
++++ b/cldc/src/vm/share/runtime/Frame.cpp
+@@ -45,7 +45,7 @@ extern "C" {
+ bool Frame::_in_gc_state;
+ Frame* Frame::_last_frame;
+ 
+-#define STACK_LOCK_SIZE (StackLock::size() + 4)
++#define STACK_LOCK_SIZE (StackLock::size() + BytesPerWord)
+ 
+ void Frame::init(Thread* thread) {
+   // Setup frame and stack pointers.
+@@ -625,7 +625,7 @@ void JavaFrame::relocate_starting_frame_pointers(Thread *thread, int delta) {
+ 
+ jint JavaFrame::bci_with_flags() const { 
+   if (in_gc_state()) { 
+-    return ((jint)raw_bcp());
++    return ((jint)(intptr_t)raw_bcp());
+   }  
+ #if ENABLE_COMPILER
+   if (is_compiled_frame()) {
+@@ -748,7 +748,7 @@ void JavaFrame::gc_prologue(void do_oop(OopDesc**)) {
+     jint    frame_bci  = DISTANCE(rm, frame_bcp);
+     jint    actual_bci = frame_bci & actual_bci_mask;
+     address actual_bcp = DERIVED(address, rm, actual_bci);
+-    jint    flags      = (int)frame_bcp - (int)actual_bcp;
++    jint    flags      = DISTANCE(actual_bcp,frame_bcp);
+     GUARANTEE(actual_bci >= Method::base_offset(), "Sanity check");
+     GUARANTEE((juint)actual_bci < rm->object_size(), 
+               "Must be within appropriate limits");
+@@ -793,11 +793,11 @@ void JavaFrame::gc_epilogue(void) {
+ #endif
+   {
+     Method::Raw method = raw_method();
+-    int     saved_bcp  = (int)raw_bcp();
++    int     saved_bcp  = (int)(intptr_t)raw_bcp();
+     int     flags      = saved_bcp & ~actual_bci_mask;
+     int     actual_bci = (saved_bcp & actual_bci_mask) + Method::base_offset();
+     address actual_bcp = DERIVED(address, method.obj(), actual_bci);
+-    address frame_bcp  = (address)((int)actual_bcp + flags);
++    address frame_bcp  = DERIVED(address,actual_bcp,flags);
+     set_raw_bcp(frame_bcp);
+ 
+     set_cpool(DERIVED(address, 
+@@ -1171,8 +1171,8 @@ void Frame::init(Thread *thread, address guessed_fp) {
+     limit = (address)stk.obj();
+   }
+ 
+-  guessed_fp = (address) (((jint)guessed_fp) & (~0x03));
+-  limit      = (address) (((jint)limit)      & (~0x03));
++  guessed_fp = (address) (((uintptr_t)guessed_fp) & (~0x03));
++  limit      = (address) (((uintptr_t)limit)      & (~0x03));
+   start      = guessed_fp;
+ 
+   // (2) Start from the current top of the stack and search downwards.
+@@ -1314,7 +1314,7 @@ void JavaFrame::print_stack_address(Stream *st, address addr) {
+     st->print("        ");
+   }
+ 
+-  st->print_hex8((int)addr);
++  st->print_hex8((int)(uintptr_t)addr);
+   st->print(" ");
+ }
+ 
+@@ -1568,7 +1568,7 @@ void EntryFrame::print_raw_frame_on(Stream *st) {
+     } else {
+       st->print("        ");
+     }
+-    st->print_hex8((int)addr);
++    st->print_hex8((int)(uintptr_t)addr);
+     st->print(" ");
+ 
+     if (offset == stored_last_sp_offset()) {
+diff --git a/cldc/src/vm/share/runtime/Frame.hpp b/cldc/src/vm/share/runtime/Frame.hpp
+index a77eb86..bd9ff1b 100644
+--- a/cldc/src/vm/share/runtime/Frame.hpp
++++ b/cldc/src/vm/share/runtime/Frame.hpp
+@@ -333,7 +333,7 @@ class JavaFrame : public Frame {
+ 
+   static int first_stack_lock_offset() {
+     return JavaStackDirection < 0
+-        ? empty_stack_offset() - (sizeof(int) + StackLock::size())
++        ? empty_stack_offset() - (BytesPerWord + StackLock::size())
+         : empty_stack_offset() + sizeof(int);
+   }
+ 
+diff --git a/cldc/src/vm/share/runtime/HotRoutines.incl.hpp b/cldc/src/vm/share/runtime/HotRoutines.incl.hpp
+index 6990f6d..1c585ae 100644
+--- a/cldc/src/vm/share/runtime/HotRoutines.incl.hpp
++++ b/cldc/src/vm/share/runtime/HotRoutines.incl.hpp
+@@ -647,14 +647,14 @@ int ConstantPool::name_and_type_ref_index_at(int index JVM_TRAPS) {
+   //WAS: jint ref_index = field_or_method_at(index JVM_ZCHECK(ref_index));
+   TypeArray::Raw ta = tags();
+   jubyte *tag_base = (jubyte*)ta().base_address();
+-  jint   *val_base = (jint*) ( (int)(obj()) + base_offset() );
++  address val_base=(address)obj()+base_offset();
+   int len = length();
+   jint ref_index, name_and_type_index;
+ 
+   if ((juint)index >= (juint)len) {
+     goto error;
+   }
+-  ref_index = val_base[index];
++  ref_index = (*(jint*)(val_base + index * BytesPerWord));
+ 
+   {
+     ConstantTag tag1(tag_base[index]);
+diff --git a/cldc/src/vm/share/runtime/JarFileParser.cpp b/cldc/src/vm/share/runtime/JarFileParser.cpp
+index 0ed36be..71f1b62 100644
+--- a/cldc/src/vm/share/runtime/JarFileParser.cpp
++++ b/cldc/src/vm/share/runtime/JarFileParser.cpp
+@@ -1461,7 +1461,7 @@ ReturnOop FileDescriptor::allocate(JVM_SINGLE_ARG_TRAPS) {
+     // Just put in a dummy object with enough space to hold all the fields
+     // of a FileDescriptor. This will be fixed up in
+     // JarFileParser::fix_bootstrap().
+-    return Universe::new_byte_array_raw(4 JVM_NO_CHECK_AT_BOTTOM);
++    return Universe::new_byte_array_raw(sizeof(jlong)+sizeof(jint) JVM_NO_CHECK_AT_BOTTOM);
+   } else {
+     return Universe::new_instance(Universe::file_descriptor_class()
+                                   JVM_NO_CHECK_AT_BOTTOM);
+@@ -1469,7 +1469,7 @@ ReturnOop FileDescriptor::allocate(JVM_SINGLE_ARG_TRAPS) {
+ }
+ 
+ void FileDescriptor::set_handle(OsFile_Handle value) {
+-  int_field_put(handle_offset(), (int)value);
++  long_field_put(handle_offset(),(jlong)(intptr_t)value);
+   set_valid(true);
+ }
+ 
+@@ -1478,7 +1478,7 @@ void FileDescriptor::dispose() {
+     OsFile_close(handle());
+     set_valid(false);
+ #ifdef AZZERT
+-    int_field_put(handle_offset(), -1);
++    long_field_put(handle_offset(), -1);
+ #endif
+   }
+ }
+diff --git a/cldc/src/vm/share/runtime/JarFileParser.hpp b/cldc/src/vm/share/runtime/JarFileParser.hpp
+index 84dd5b7..c97e78b 100644
+--- a/cldc/src/vm/share/runtime/JarFileParser.hpp
++++ b/cldc/src/vm/share/runtime/JarFileParser.hpp
+@@ -34,7 +34,7 @@ public:
+     return header_size() + 0;
+   } 
+   static int valid_offset() {
+-    return header_size() + sizeof(jobject);
++    return header_size() + sizeof(jlong);
+   }
+ 
+ public:
+@@ -46,7 +46,7 @@ public:
+   }
+ 
+   OsFile_Handle handle() const {
+-    return (OsFile_Handle)int_field(handle_offset());
++    return (OsFile_Handle)(intptr_t)long_field(handle_offset());
+   }
+   void set_handle(OsFile_Handle value);
+ 
+diff --git a/cldc/src/vm/share/runtime/Scheduler.cpp b/cldc/src/vm/share/runtime/Scheduler.cpp
+index 34435d5..be62074 100644
+--- a/cldc/src/vm/share/runtime/Scheduler.cpp
++++ b/cldc/src/vm/share/runtime/Scheduler.cpp
+@@ -610,7 +610,7 @@ void Scheduler::wake_up_terminated_sleepers(int task_id JVM_TRAPS) {
+         if (TraceThreadsExcessive) {
+           TTY_TRACE_CR(("wakeup_timed_terminated_sleepers: signaling "
+                         "terminated thread 0x%x",
+-                        (int)this_thread().obj()));
++                        (int)(uintptr_t)this_thread().obj()));
+         }
+         if (Thread::current()->equals(this_thread())) {
+           Thread::set_current_pending_exception(&termination_signal);
+@@ -703,7 +703,7 @@ void Scheduler::wake_up_timed_out_sleepers(JVM_SINGLE_ARG_TRAPS) {
+           (time >= this_thread().wakeup_time())) {
+         if (TraceThreadsExcessive) {
+           TTY_TRACE_CR(("wakeup_timed_out_sleepers: signaling thread 0x%x"
+-                        " (id=%d)", (int)this_thread().obj(),
++                        " (id=%d)", (int)(uintptr_t)this_thread().obj(),
+                         this_thread().id()));
+         }
+         remove_waiting_thread(&this_thread);
+@@ -903,7 +903,7 @@ void Scheduler::wait_for(Thread* thread, jlong timeout) {
+   // This can be called for either a synchronization variable or for a
+   // wait variable.  This may or may not be the current thread.
+   if (TraceThreadsExcessive) {
+-    TTY_TRACE_CR(("wait_for: Thread 0x%x (id=%d)", (int)thread->obj(),
++    TTY_TRACE_CR(("wait_for: Thread 0x%x (id=%d)", (int)(uintptr_t)thread->obj(),
+                   thread->id()));
+   }
+ 
+@@ -1312,7 +1312,7 @@ void Scheduler::interrupt_thread(Thread* thread JVM_TRAPS) {
+         NOT_PRODUCT(trace("interrupt_thread: thread found", &this_thread));
+         if (TraceThreadsExcessive) {
+           TTY_TRACE_CR(("interrupt_thread: signaling thread 0x%x (id=%d)",
+-                        (int)this_thread().obj(), this_thread().id()));
++                        (int)(uintptr_t)this_thread().obj(), this_thread().id()));
+         }
+         UsingFastOops fast_oops;
+         Throwable::Fast exception;
+@@ -1336,7 +1336,7 @@ void Scheduler::interrupt_thread(Thread* thread JVM_TRAPS) {
+           // exception at this point
+           if (TraceThreadsExcessive) {
+             TTY_TRACE_CR(("interrupt_thread: OOME, thread 0x%x",
+-                          (int)thread->obj()));
++                          (int)(uintptr_t)thread->obj()));
+           }
+           thread->set_pending_interrupt();
+           return;
+@@ -1360,7 +1360,7 @@ void Scheduler::interrupt_thread(Thread* thread JVM_TRAPS) {
+   if (!found) {
+     if (TraceThreadsExcessive) {
+       TTY_TRACE_CR(("interrupt_thread: set pending interrupt for thread 0x%x",
+-                   (int)thread->obj()));
++                   (int)(uintptr_t)thread->obj()));
+     }
+     thread->set_pending_interrupt();
+   }
+diff --git a/cldc/src/vm/share/runtime/Synchronizer.cpp b/cldc/src/vm/share/runtime/Synchronizer.cpp
+index 4dd1f0d..3a18a12 100644
+--- a/cldc/src/vm/share/runtime/Synchronizer.cpp
++++ b/cldc/src/vm/share/runtime/Synchronizer.cpp
+@@ -223,7 +223,7 @@ void Synchronizer::signal_waiters(StackLock* stack_lock) {
+                     Thread::current()->id(),
+                     first_waiter().wait_obj(),
+                     next_waiter().obj(),
+-                    (int)stack_lock));
++                    (int)(uintptr_t)stack_lock));
+     }
+     Scheduler::add_to_active(&first_waiter);
+     JavaOop::Raw obj = first_waiter().wait_obj();
+@@ -310,7 +310,7 @@ void StackLock::relocate_internal_pointers(int delta) {
+     if (obj != NULL) {
+       GUARANTEE(stack_near == obj->klass(), "check loop");
+       // Locked object, relocate pointer to stack near
+-      obj->_klass = (OopDesc *)((int)obj->_klass + delta);
++      obj->_klass = DERIVED(OopDesc*,obj->_klass,delta);
+       if (TraceGC) {
+         TTY_TRACE_CR(("TraceGC: 0x%p relocate object near from "
+                       "stack lock 0x%p", obj, stack_near));
+diff --git a/cldc/src/vm/share/runtime/Thread.cpp b/cldc/src/vm/share/runtime/Thread.cpp
+index fd4fc67..82251e8 100644
+--- a/cldc/src/vm/share/runtime/Thread.cpp
++++ b/cldc/src/vm/share/runtime/Thread.cpp
+@@ -87,7 +87,7 @@ void Thread::setup_lightweight_stack(JVM_SINGLE_ARG_TRAPS) {
+   set_stack_limit();
+ 
+   sp = setup_stack_asm(sp);
+-  set_stack_pointer((jint)sp);
++  set_stack_pointer(sp);
+ }
+ 
+ void force_terminated(Thread* thread) {
+@@ -715,7 +715,7 @@ void Thread::set_stack_limit(address value) {
+ #ifdef UNDER_CE
+   value = (address)((int)value | _system_address);
+ #endif
+-  int_field_put(stack_limit_offset(), (jint) value);
++  native_address_field_put(stack_limit_offset(),value);
+   if (Scheduler::get_gc_current_thread() != NULL) {
+     // in a gc so check the old current thread pointer
+     if (this->obj() == Scheduler:: get_gc_current_thread()) {
+diff --git a/cldc/src/vm/share/runtime/Thread.hpp b/cldc/src/vm/share/runtime/Thread.hpp
+index 7e8d9d0..12aeeaa 100644
+--- a/cldc/src/vm/share/runtime/Thread.hpp
++++ b/cldc/src/vm/share/runtime/Thread.hpp
+@@ -311,16 +311,16 @@ class Thread: public Oop {
+ 
+   // Accessors for last java stack pointer and last java frame pointer
+   address last_java_sp() const {
+-    return (address)int_field(last_java_sp_offset());
++    return native_address_field(last_java_sp_offset());
+   }
+   void set_last_java_sp(address value) {
+-    int_field_put(last_java_sp_offset(), (jint)value);
++    native_address_field_put(last_java_sp_offset(),value);
+   }
+   address last_java_fp() const {
+-    return (address)int_field(last_java_fp_offset());
++    return native_address_field(last_java_fp_offset());
+   }
+   void set_last_java_fp(address value) {
+-    int_field_put(last_java_fp_offset(), (jint)value);
++    native_address_field_put(last_java_fp_offset(),value);
+   }
+   bool last_java_frame_exists() const {
+     return (last_java_sp() != NULL) && (last_java_fp() != NULL);
+@@ -409,17 +409,17 @@ class Thread: public Oop {
+   }
+ 
+   // Accessors for stack_pointer
+-  jint stack_pointer() {
+-    return int_field(stack_pointer_offset());
++  address stack_pointer() {
++    return native_address_field(stack_pointer_offset());
+   }
+ 
+-  void set_stack_pointer(jint value) {
+-    int_field_put(stack_pointer_offset(), value);
++  void set_stack_pointer(address value) {
++    native_address_field_put(stack_pointer_offset(),value);
+   }
+ 
+   // Accessors for the stack limit
+   address stack_limit()         const {
+-    return (address) int_field(stack_limit_offset());
++    return native_address_field(stack_limit_offset());
+   }
+   void set_stack_limit();
+   void set_stack_limit(address value);
+diff --git a/cldc/src/vm/share/runtime/Throwable.hpp b/cldc/src/vm/share/runtime/Throwable.hpp
+index 09d565e..a05563b 100644
+--- a/cldc/src/vm/share/runtime/Throwable.hpp
++++ b/cldc/src/vm/share/runtime/Throwable.hpp
+@@ -33,10 +33,10 @@ class Throwable: public Instance {
+   HANDLE_DEFINITION_CHECK(Throwable, Instance);
+ 
+   static jint message_offset() {
+-    return Instance::header_size() + (0 * sizeof(jint));
++    return Instance::header_size() + (0 * sizeof(jobject));
+   }
+   static jint backtrace_offset() {
+-    return Instance::header_size() + (1 * sizeof(jint));
++    return Instance::header_size() + (1 * sizeof(jobject));
+   }
+ 
+   ReturnOop message() {
+diff --git a/cldc/src/vm/share/utilities/GlobalDefinitions.cpp b/cldc/src/vm/share/utilities/GlobalDefinitions.cpp
+index 78861b4..494616a 100644
+--- a/cldc/src/vm/share/utilities/GlobalDefinitions.cpp
++++ b/cldc/src/vm/share/utilities/GlobalDefinitions.cpp
+@@ -267,7 +267,7 @@ void power_of_2_fatal() {
+ }
+ 
+ void check_basic_types() {
+-  GUARANTEE( 4 == sizeof( jobject),   "wrong size for basic type");
++  GUARANTEE( sizeof(void*) == sizeof( jobject),   "wrong size for basic type");
+   GUARANTEE( 1 == sizeof( jbyte),     "wrong size for basic type");
+   GUARANTEE( 2 == sizeof( jchar),     "wrong size for basic type");
+   GUARANTEE( 2 == sizeof( jshort),    "wrong size for basic type");
+diff --git a/cldc/src/vm/share/utilities/GlobalDefinitions.hpp b/cldc/src/vm/share/utilities/GlobalDefinitions.hpp
+index 97dce5d..4dd59b8 100644
+--- a/cldc/src/vm/share/utilities/GlobalDefinitions.hpp
++++ b/cldc/src/vm/share/utilities/GlobalDefinitions.hpp
+@@ -580,7 +580,7 @@ class WeakRefArray;         // Used by ENABLE_JNI only
+ const int LogBytesPerByte    = 0;
+ const int LogBytesPerShort   = 1;
+ const int LogBytesPerInt     = 2;
+-const int LogBytesPerWord    = 2;
++const int LogBytesPerWord = (sizeof(void*) == 8 ? 3 : 2);
+ const int LogBytesPerLong    = 3;
+ 
+ const int BytesPerByte   = 1 << LogBytesPerByte;          //1 (BytesPerByte)
+@@ -592,7 +592,7 @@ const int BytesPerLong   = 1 << LogBytesPerLong;          //8 (BytesPerLong)
+ const int LogBitsPerByte = 3;                             //3 (LogBitsPerByte)
+ const int LogBitsPerShort=LogBitsPerByte+LogBytesPerShort;//4 (LogBitsPerShort)
+ const int LogBitsPerInt  =LogBitsPerByte+LogBytesPerInt;  //5 (LogBitsPerInt)
+-const int LogBitsPerWord =LogBitsPerByte+LogBytesPerWord; //5 (LogBitsPerWord)
++const int LogBitsPerWord = 5; // width of a Java int and GC bitmap word //5 (LogBitsPerWord)
+ const int LogBitsPerLong =LogBitsPerByte+LogBytesPerLong; //6 (LogBitsPerLong)
+ 
+ const int BitsPerByte    = 1 << LogBitsPerByte;           // 8 (BitsPerByte)
+@@ -675,8 +675,9 @@ inline address_word castable_address(void* x) {
+ #define CAST_FROM_FN_PTR(new_type, func_ptr) \
+     ((new_type)((address_word) (func_ptr)))
+ 
+-#define DISTANCE(low, high)        (((jint) (high)) - ((jint) (low)))
+-#define DERIVED(type, ptr, offset) ((type) (((jint) (ptr))+((jint) (offset))))
++#include "PointerMath.hpp"
++#include "HeapBitmap.hpp"
++#include "VmSlot.hpp"
+ 
+ #ifdef FIELD_OFFSET
+ #undef FIELD_OFFSET
+@@ -852,14 +853,14 @@ inline intptr_t align_size_down(intptr_t size, intptr_t alignment) {
+ class ArrayPointer {
+ protected:
+   Array*   _heap_array;
+-  int      _offset;
++  intptr_t _offset;
+ 
+ public:
+   ArrayPointer(Array* heap_array, int offset = 0) :
+     _heap_array(heap_array), _offset(offset) {}
+ 
+   ArrayPointer(address native_addr) :
+-    _heap_array(NULL), _offset((int) native_addr) {}
++    _heap_array(NULL), _offset((intptr_t) native_addr) {}
+ 
+   bool in_java_heap() {
+     return _heap_array != NULL;
+@@ -1032,9 +1033,9 @@ enum BasicTypeByteSize {
+   T_SHORT_byte_size   = 2,
+   T_INT_byte_size     = 4,
+   T_LONG_byte_size    = 8,
+-  T_OBJECT_byte_size  = 4,
+-  T_ARRAY_byte_size   = 4,
+-  T_SYMBOLIC_byte_size= 4,
++  T_OBJECT_byte_size  = sizeof(void*),
++  T_ARRAY_byte_size   = sizeof(void*),
++  T_SYMBOLIC_byte_size= sizeof(void*),
+   T_VOID_byte_size    = 0
+ };
+ 
+@@ -1885,9 +1886,9 @@ extern "C" {
+   extern OopDesc* _interned_string_near_addr;
+ 
+ #if ROMIZED_PRODUCT
+-  extern const int system_symbols[];
++  extern const intptr_t system_symbols[];
+ #else
+-  extern       int system_symbols[];
++  extern       intptr_t system_symbols[];
+ #endif
+ 
+   // Scheduler.cpp
+diff --git a/cldc/src/vm/share/utilities/GlobalDefinitions_gcc.hpp b/cldc/src/vm/share/utilities/GlobalDefinitions_gcc.hpp
+index a5eebf4..f03a077 100644
+--- a/cldc/src/vm/share/utilities/GlobalDefinitions_gcc.hpp
++++ b/cldc/src/vm/share/utilities/GlobalDefinitions_gcc.hpp
+@@ -120,7 +120,7 @@ inline unsigned int _rotr(unsigned int x, unsigned int y) {
+ 
+ #elif defined(POWERPC)
+ 
+-#define BREAKPOINT __asm__("tw 12, r0, r0")
++#define BREAKPOINT __asm__("tw 31, 0, 0")
+ #define panic()
+ inline unsigned int _rotr(unsigned int x, unsigned int y) {
+    return (x >> y) | (x << (32 - y));
+diff --git a/cldc/src/vm/share/utilities/Stream.hpp b/cldc/src/vm/share/utilities/Stream.hpp
+index 488e7f1..eb2de4b 100644
+--- a/cldc/src/vm/share/utilities/Stream.hpp
++++ b/cldc/src/vm/share/utilities/Stream.hpp
+@@ -139,7 +139,7 @@ public:
+   // Print a hex number with 8 digits, including leading zeros.
+   void print_hex8(int n);
+   void print_hex8(address a) {
+-    print_hex8((int)a);
++    print_hex8((int)(uintptr_t)a);
+   }
+ 
+ #endif
+diff --git a/cldc/src/vm/share/verifier/VerifierFrame.cpp b/cldc/src/vm/share/verifier/VerifierFrame.cpp
+index 3725c61..d319c5c 100644
+--- a/cldc/src/vm/share/verifier/VerifierFrame.cpp
++++ b/cldc/src/vm/share/verifier/VerifierFrame.cpp
+@@ -43,7 +43,7 @@ void VerifierFrame::initialize(Method *method, ObjArray *stackmaps JVM_TRAPS) {
+     _vstack_classes = Universe::verifier_vstack_classes_cache()->obj();
+ 
+     address base = (address)_vstack_classes().base_address();
+-    jvm_memset(base, 0, _max_stack * sizeof(int));
++    jvm_memset(base, 0, _max_stack * sizeof(OopDesc*));
+   } else {
+     _vstack_tags    = Universe::new_int_array(_max_stack JVM_CHECK);
+     _vstack_classes = Universe::new_obj_array  (_max_stack JVM_CHECK);
+@@ -54,7 +54,7 @@ void VerifierFrame::initialize(Method *method, ObjArray *stackmaps JVM_TRAPS) {
+     _vlocals_classes = Universe::verifier_vlocals_classes_cache()->obj();
+ 
+     address base = (address)_vlocals_classes().base_address();
+-    jvm_memset(base, 0, _max_locals * sizeof(int));
++    jvm_memset(base, 0, _max_locals * sizeof(OopDesc*));
+   } else {
+     _vlocals_tags    = Universe::new_int_array(_max_locals JVM_CHECK);
+     _vlocals_classes = Universe::new_obj_array  (_max_locals JVM_CHECK);

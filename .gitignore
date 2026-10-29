@@ -1,0 +1,21 @@
+# Large generated inputs and outputs (reproducible from the pinned scripts)
+/deps/
+/build/
+__pycache__/
+*.py[cod]
+*.pkg
+*.elf
+*.self
+*.zip
+
+# Local recovery/continuation notes are not part of the public project
+/FILE_MANIFEST.json
+/PROGRESS.json
+/RECOVERY_STATE.md
+/recovery_*.log
+
+# Local PS3/emulator data and one-shot validation triggers
+*.once
+emulator_config/
+emulator_cache/
+

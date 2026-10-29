@@ -1,0 +1,86 @@
+#
+# MIDP javacall platform configuration for the PlayStation 2 (Emotion Engine,
+# MIPS r5900, little-endian, 32-bit). Mirrors linux_i386_gcc.gmk but targets the
+# ps2sdk EE toolchain, reached through the same unprefixed $(GNU_TOOLS_DIR)/bin/
+# {gcc,g++,ar} wrappers as the CLDC ps2_mips build (build/common/makefiles/gcc.gmk
+# prepends GNU_TOOLS_BINDIR to the bare tool names).
+#
+# Generates libmidp.a + libjvm.a for MIPS (target `midp`); the final PS2 ELF is
+# linked separately by our EE build, same split as the CLDC ps2_mips target.
+#
+# The MIPS codegen flags (-DMIPS -G0, endianness, no -m32) are inherited from the
+# CLDC dist's cldc_vm.make (JVM_CC_FLAGS/JVM_CPP_FLAGS, pulled in by gcc.gmk); the
+# EE cross gcc itself makes the objects MIPS, so no -march/-m32 is needed here.
+#
+
+# Definition of platform to build on (host tools: romgen/preverify/configurator).
+HOST_PLATFORM		= linux
+HOST_OS			= linux
+HOST_CPU		= i386
+HOST_COMPILER		= gcc
+
+# Definition of platform to run on.
+TARGET_PLATFORM		= javacall
+TARGET_OS		= javacall
+TARGET_CPU		= mips
+TARGET_COMPILER		= gcc
+TARGET_VM		= cldc_vm
+
+# Our PCSL was cross-built into $(PCSL_OUTPUT_DIR)/linux_mips (PCSL_OS=linux,
+# PCSL_CPU=mips), not the default javacall_mips that gcc-jtwi.gmk would assume.
+PCSL_TARGET_DIR		= $(PCSL_OUTPUT_DIR)/linux_mips
+
+# The EE newlib toolchain has no -lpthread/-lm/-lnsl of the Linux flavour that
+# gcc.gmk's default GCC_LIBS pulls in; we link the final ELF ourselves, so keep
+# the MIDP-side system libs empty here (libm comes from the EE link step).
+GCC_LIBS =
+
+# The 2008-era MIDP C sources assume a pre-C23 compiler; the modern EE gcc (15.x)
+# defaults to gnu23 and is stricter. Two flags keep the old code building without
+# patching every file (analogous to the CLDC toolchain patches):
+#   -std=gnu99    : `bool`/`true`/`false` are not keywords (code does
+#                   `typedef int bool`), and mixed declarations are allowed.
+#   -fpermissive  : downgrades C permerrors (implicit function declaration, e.g.
+#                   memcpy without <string.h>; implicit int; lax int/pointer
+#                   conversions) back to warnings.
+EXTRA_CFLAGS += -std=gnu99 -fpermissive
+
+# EE unaligned 64-bit store guard. The R5900 traps `sd`/`ld` (64-bit) on any address
+# not 8-byte aligned; there is no hardware fixup (PCSX2 does it silently, so this only
+# bites on real hardware -> "Address store exception", EPC in primDrawHorzLine). The
+# MIDP graphics primitives (gxj_putpixel.c: primDrawHorzLine, primFillRect, blits) write
+# an RGB565 framebuffer (2 bytes/pixel), so a run starting at an odd x lands on a
+# 2/4-aligned address. At -O2 gcc emits 64-bit `sd` to that buffer via TWO passes:
+#   -fstore-merging : fuses adjacent 32-bit stores of the same value into one `sd`.
+#   auto-vectorizer : GCC 12 enables -ftree-loop-vectorize/-ftree-slp-vectorize at -O2,
+#                     which widen the constant-pixel fill loop into 64-bit stores
+#                     (pixel replicated 4x in a 64-bit reg, stored 8 bytes at a time).
+# Both assume 8-byte alignment that RGB565 runs do not have. Disable them so the stores
+# stay as 32-bit `sw`/`sh` (the EE handles those unaligned). Cf. the source-level
+# long/double field fix in Oop.hpp (patch-phoneme.sh #22).
+EXTRA_CFLAGS += -fno-store-merging -fno-tree-vectorize
+
+# Perf front PASSO 0b: compile the native-draw timing hooks (patch #29 ps2me-frame-profile)
+# into the gxj primitives when PS2ME_PROFILE_FRAME=true. make imports the env var of the same
+# name automatically; our layer defines the ps2me_prof_* callbacks under the same flag. Inert
+# unless set, so normal builds are byte-identical.
+ifeq ($(PS2ME_PROFILE_FRAME), true)
+EXTRA_CFLAGS += -DPS2ME_PROFILE_FRAME
+endif
+
+# Select the hard-coded (generic) security policy back-end instead of the dynamic
+# javacall one. The javacall path (javacall_policy_load.c) reads the permission
+# group/domain tables through javacall_permissions_* -- which are stubs in our port
+# -- so loadGroupList() returns null and Permissions.init() throws
+# "Policy file not found", breaking suite installation. generic_policy_load.c
+# supplies those tables hard-coded in C (no filesystem access), which is exactly the
+# "non-javacall implementation" path Permissions.java documents. This flag is `?=`
+# in Options.gmk (included after this platform gmk), so setting it here wins.
+USE_DYNAMIC_PERMISSIONS = false
+
+# Platform-specific compiler/linker flags.
+EXTRA_CPPFLAGS +=
+LD_FLAGS +=
+EXTRA_LIBS +=
+
+LIBS += -L$(JAVACALL_LIB_DIR) -ljavacall$(g)$(r)

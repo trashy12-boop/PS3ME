@@ -1,0 +1,9 @@
+{
+  "project": "Wellinator/PS2ME",
+  "release": "v1.4.0",
+  "source_url": "https://github.com/Wellinator/PS2ME",
+  "archive_sha256": "e8e648c3b7c196a8f16a4c27c46f97251259196e3ceafbd71ab8e095e2c537ea",
+  "source_commit": "98dd9ff0b134e2aa13a752c7e6ce034283c0d2a5",
+  "imported_tree": "upstream/ps2",
+  "changes_to_imported_tree": "none"
+}

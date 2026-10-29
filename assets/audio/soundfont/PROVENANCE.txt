@@ -1,0 +1,2 @@
+Debian timgm6mb-soundfont_1.3-5_all.deb; GPL-2.0; see COPYRIGHT.
+SF2 SHA256: c5378b62028c920cb11e4803327983fee2f2cdff5dc89c708e39da417e51c854

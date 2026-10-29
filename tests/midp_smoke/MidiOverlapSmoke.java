@@ -1,0 +1,4 @@
+import javax.microedition.midlet.MIDlet;import javax.microedition.media.*;
+public class MidiOverlapSmoke extends MIDlet implements Runnable {
+ protected void startApp(){new Thread(this).start();}protected void pauseApp(){}protected void destroyApp(boolean b){}
+ public void run(){try{Player bg=Manager.createPlayer(getClass().getResourceAsStream("/bg.mid"),"audio/midi"),fx=Manager.createPlayer(getClass().getResourceAsStream("/fx.mid"),"audio/midi");bg.setLoopCount(-1);bg.start();Thread.sleep(350);fx.start();Thread.sleep(100);System.out.println("MIDI_OVERLAP bg="+bg.getState()+" fx="+fx.getState());if(bg.getState()!=400||fx.getState()!=400)throw new Exception("interrupted music");fx.close();if(bg.getState()!=400)throw new Exception("close stopped music");bg.setMediaTime(0);Thread.sleep(2000);bg.close();System.out.println("MIDI_OVERLAP PASS");}catch(Throwable t){System.out.println("MIDI_OVERLAP FAIL "+t);t.printStackTrace();}notifyDestroyed();}}

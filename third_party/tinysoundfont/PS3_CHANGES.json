@@ -1,0 +1,5 @@
+{
+  "commit": "853a0a171759f1ddba0de1442133a75912bbeffa",
+  "url": "https://github.com/schellingb/TinySoundFont",
+  "changes": "Little endian RIFF, hydra numeric fields and PCM decoding for big endian PPE; generator byte ranges."
+}

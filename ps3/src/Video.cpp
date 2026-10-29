@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: GPL-2.0-only
+#include "Video.hpp"
+namespace ps3me {
+Rect fit(int sw,int sh,int dw,int dh) {
+    Rect r={0,0,0,0};
+if(sw<=0||sh<=0||dw<=0||dh<=0)return r;
+
+    if(static_cast<int64_t>(dw)*sh<=static_cast<int64_t>(dh)*sw){r.w=dw;
+r.h=static_cast<int>(static_cast<int64_t>(dw)*sh/sw);
+}
+    else{r.h=dh;
+r.w=static_cast<int>(static_cast<int64_t>(dh)*sw/sh);
+}
+    if(r.w<1)r.w=1;
+
+    if(r.h<1)r.h=1;
+
+    r.x=(dw-r.w)/2;
+r.y=(dh-r.h)/2;
+return r;
+
+}
+uint32_t rgb565ToXrgb(uint16_t p) {
+    uint32_t r=(p>>11)&31,g=(p>>5)&63,b=p&31;
+
+    return 0xff000000u|(((r<<3)|(r>>2))<<16)|(((g<<2)|(g>>4))<<8)|((b<<3)|(b>>2));
+
+}
+void scaleRgb565(const uint16_t* src,int sw,int sh,uint32_t* dst,int dw,int dh,int pitch) {
+    if(!src||!dst||sw<=0||sh<=0||dw<=0||dh<=0||pitch<dw)return;
+
+    for(int y=0;
+y<dh;
+++y)for(int x=0;
+x<dw;
+++x)dst[y*pitch+x]=0xff000000u;
+
+    Rect r=fit(sw,sh,dw,dh);
+
+    for(int y=0;
+y<r.h;
+++y) {
+        int sy=static_cast<int>(static_cast<int64_t>(y)*sh/r.h);
+
+        for(int x=0;
+x<r.w;
+++x) {
+            int sx=static_cast<int>(static_cast<int64_t>(x)*sw/r.w);
+
+            dst[(y+r.y)*pitch+x+r.x]=rgb565ToXrgb(src[sy*sw+sx]);
+
+        }
+    }
+}
+void drawCursor(uint32_t* p,int w,int h,int pitch,Rect r,int x,int y,int sw,int sh,uint32_t dark,uint32_t light){
+ if(!p||w<=0||h<=0||pitch<w||sw<=0||sh<=0||r.w<=0||r.h<=0)return;
+
+ if(x<0)x=0;
+if(y<0)y=0;
+if(x>=sw)x=sw-1;
+if(y>=sh)y=sh-1;
+
+ int px=r.x+(int)((int64_t)x*r.w/sw),py=r.y+(int)((int64_t)y*r.h/sh);
+
+ // The tip marks the exact Java ME pen coordinate. Arrow pixels touch only the
+ // native output surface, never the game's raster or the saved scaled frame.
+ static const char* shape[]={"B","BB","BWB","BWWB","BWWWB","BWWWWB","BWWWWWB","BWWWWWWB","BWWWWWWWB","BWWWWWWWWB","BWWWWWWWWWB","BWWWWWWWWWWB","BWWWWWWBBBBBB","BWWWBWWB","BWWB BWWB","BWB  BWWB","BB    BWWB","B     BWWB","       BB"};
+
+ for(int j=0;
+j<19;
+j++)for(int i=0;
+shape[j][i];
+i++){char c=shape[j][i];
+int dx=px+i,dy=py+j;
+if(c!=' '&&dx>=0&&dy>=0&&dx<w&&dy<h)p[dy*pitch+dx]=c=='B'?dark:light;
+}
+}
+
+}

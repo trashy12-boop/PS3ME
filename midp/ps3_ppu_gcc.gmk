@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-2.0-only
+HOST_PLATFORM=linux
+HOST_OS=linux
+HOST_CPU=i386
+HOST_COMPILER=gcc
+TARGET_PLATFORM=javacall
+TARGET_OS=javacall
+TARGET_CPU=ppu
+TARGET_COMPILER=gcc
+TARGET_VM=cldc_vm
+PCSL_TARGET_DIR=$(PCSL_OUTPUT_DIR)/linux_ppu
+GCC_LIBS=
+USE_DYNAMIC_PERMISSIONS=false
+EXTRA_CFLAGS += -std=gnu99 -DPS3ME_PPU -fno-strict-aliasing -fwrapv -fno-tree-vectorize -fno-store-merging
+LIBS += -L$(JAVACALL_LIB_DIR) -ljavacall$(g)$(r)

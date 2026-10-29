@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/ps3dev/PSL1GHT",
+  "tree": "f649a08fd536a9e27c08c7db2d93a2d7ee4c3bbe",
+  "sha256": {
+    "pkg.py": "d92491a3fff4253de2b95970e4d6279264b717b8abbe918d0d92207ce65fb290",
+    "Struct.py": "0287a2fce23a7ca18d135fa9766f079fe749fb84075bc33ebf6f01cd501e4918",
+    "fself.py": "531f06b44fc9375fde6f9697cf23bc1163d1d6de35f162a7432f7f4d73de2069",
+    "sfo.py": "a0f52e77014e913bd5641eab61d397227f2485ccd1c7aba6c293eb6a987e9faf",
+    "setup.py": "6dffe16892bc5b053e127e75dff5a6140ab51033dbd1b6aa75eb93289bad98f3",
+    "crypt.c": "6232c2aaf8ad4a67ecc38540b59c96af059ca6ad6d363fa2acf92faa07034a7e",
+    "package_finalize.c": "04270b75da405f39e4268c61cff72f935372d7dbd0c23f17d552f2ab1b80f0ed"
+  }
+}

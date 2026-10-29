@@ -1,0 +1,5 @@
+'https://snapshot.ubuntu.com/ubuntu/20260828T000000Z/pool/main/g/gcc-13/lib32gcc-13-dev_13.2.0-23ubuntu4_amd64.deb' lib32gcc-13-dev_13.2.0-23ubuntu4_amd64.deb 2466102 SHA256:532cb84b9b34e5d2d1b8426131ca01c69698ba7263c412fe721598e3575ee494
+'https://snapshot.ubuntu.com/ubuntu/20260828T000000Z/pool/main/g/gcc-14/lib32gcc-s1_14-20240412-0ubuntu1_amd64.deb' lib32gcc-s1_14-20240412-0ubuntu1_amd64.deb 95152 SHA256:c9e041389ec8a42b32aea8af9a0ecc0e996c3dee4b9fe2b225fe40403880cb05
+'https://snapshot.ubuntu.com/ubuntu/20260828T000000Z/pool/main/g/glibc/libc6-dev-i386_2.39-0ubuntu8_amd64.deb' libc6-dev-i386_2.39-0ubuntu8_amd64.deb 1447534 SHA256:1abcd2f56bfe54185adb2dc4bf79df2576190fa830c45ab11ebd28f039f2d887
+'https://snapshot.ubuntu.com/ubuntu/20260828T000000Z/pool/main/g/glibc/libc6-i386_2.39-0ubuntu8_amd64.deb' libc6-i386_2.39-0ubuntu8_amd64.deb 2788784 SHA256:5e99c36d15f9b21d0f3444e23631d596b23774b7a5098dcfe97ab10e5242cae4
+'https://snapshot.ubuntu.com/ubuntu/20260828T000000Z/pool/universe/q/qemu/qemu-user-static_8.2.2+ds-0ubuntu1_amd64.deb' qemu-user-static_8.2.2+ds-0ubuntu1_amd64.deb 14696804 SHA256:83ad62bfe0e28a5645cb6a40d8b99e7a629fdac9e1a9cea9949d1c59a01322c7

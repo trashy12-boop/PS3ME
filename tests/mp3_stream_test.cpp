@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0-only
+#include "Mp3Engine.hpp"
+#include <vector>
+#include <fstream>
+#include <cstdio>
+#include <cmath>
+#include <cassert>
+#include <cstdint>
+struct Result{uint64_t nonzero,hash,blocks;};
+static Result render(ps3me::Mp3Engine& e,ps3me::Mp3Track* t){Result r={0,1469598103934665603ULL,0};float pcm[2048];while(e.playing(t)){assert(r.blocks++<60000);for(float&v:pcm)v=0;e.render(pcm,1024);for(float v:pcm){assert(std::isfinite(v));if(v)r.nonzero++;int32_t q=int32_t(v*32768.f);r.hash=(r.hash^uint32_t(q))*1099511628211ULL;}}return r;}
+int main(int argc,char**argv){ps3me::Mp3Engine e;unsigned char junk[100]={};assert(!e.open(junk,sizeof(junk)));for(int i=1;i<argc;i++){std::ifstream f(argv[i],std::ios::binary);std::vector<char>d((std::istreambuf_iterator<char>(f)),{});auto*t=e.open(d.data(),d.size());assert(t);e.start(t,1);Result a=render(e,t);assert(a.nonzero);e.rewind(t);e.start(t,1);Result b=render(e,t);assert(a.hash==b.hash&&a.blocks==b.blocks);e.start(t,1);Result c=render(e,t);assert(a.hash==c.hash);e.rewind(t);e.start(t,2);Result loops=render(e,t);if(loops.nonzero+100<a.nonzero*2){std::fprintf(stderr,"loop mismatch %s once=%llu twice=%llu blocks=%llu/%llu\n",argv[i],(unsigned long long)a.nonzero,(unsigned long long)loops.nonzero,(unsigned long long)a.blocks,(unsigned long long)loops.blocks);assert(false);}e.rewind(t);e.start(t,-1);float out[2048]={};e.render(out,1024);e.stop(t);assert(!e.playing(t));e.close(t);printf("PASS %s nonzero=%llu blocks=%llu rewind/restart/loop/stop\n",argv[i],(unsigned long long)a.nonzero,(unsigned long long)a.blocks);}if(argc>1){std::ifstream f(argv[1],std::ios::binary);std::vector<char>d((std::istreambuf_iterator<char>(f)),{});ps3me::Mp3Track* pool[32];for(int i=0;i<32;i++){pool[i]=e.open(d.data(),d.size());assert(pool[i]);e.start(pool[i],-1);}assert(!e.open(d.data(),d.size()));float pcm[2048]={};e.render(pcm,1024);for(float v:pcm)assert(std::isfinite(v));for(int i=0;i<32;i+=2){e.close(pool[i]);pool[i]=e.open(d.data(),d.size());assert(pool[i]);}e.shutdown();for(unsigned k=0;k<200;k++){std::vector<unsigned char>bad(200+k);for(unsigned j=0;j<bad.size();j++)bad[j]=(j*31+k*17)&255;auto*t=e.open(bad.data(),bad.size());if(t)e.close(t);}puts("PASS: 32 simultaneous decoders, capacity limit, slot reuse, corrupt inputs, repeated shutdown");}e.shutdown();e.shutdown();}
