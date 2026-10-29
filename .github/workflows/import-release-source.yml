@@ -52,7 +52,7 @@ jobs:
           set -euo pipefail
           cp -a "$RUNNER_TEMP/ps3me-import/PS2ME_PS3_Source/." .
           # Preserve updated front-page documentation, notes, and automation.
-          git restore --source=HEAD -- README.md RELEASE_NOTES_01.14.md LICENSE
+          git restore --source=HEAD -- README.md RELEASE_NOTES_01.14.md LICENSE docs/AI_DISCLOSURE.md docs/THIRD_PARTY_NOTICES.md
           git restore --source=HEAD -- .github/workflows/import-release-source.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
