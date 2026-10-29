@@ -488,8 +488,9 @@ public final class Manager {
      * @return           The list of supported content types for the given protocol.
      */
     public static String[] getSupportedContentTypes(String protocol) {
-        if(protocol==null)return new String[]{"audio/x-wav","audio/wav","audio/midi","audio/x-midi","audio/mpeg","audio/mp3"};
-        return new String[0];        
+        if("device".equals(protocol))return new String[]{"audio/x-tone-seq"};
+        if(protocol==null)return new String[]{"audio/x-wav","audio/wav","audio/midi","audio/x-midi","audio/mpeg","audio/mp3","audio/x-tone-seq"};
+        return new String[0];
     }
 
 
@@ -521,6 +522,7 @@ public final class Manager {
      * @return               The list of supported protocols for the given content type.
      */
     public static String[] getSupportedProtocols(String content_type) {
+        if(content_type==null || "audio/x-tone-seq".equals(content_type))return new String[]{"device"};
         return new String[0];
     }
 
@@ -535,13 +537,9 @@ public final class Manager {
      * @exception  IOException               Thrown if there was a problem connecting
      * with the source pointed to by the <code>locator</code>.
      */
-    public static Player createPlayer(String locator)
-         throws IOException, MediaException {
-
-        if (locator == null) {
-            throw new IllegalArgumentException();
-        }
-
+    public static Player createPlayer(String locator) throws IOException, MediaException {
+        if(locator==null)throw new IllegalArgumentException();
+        if(TONE_DEVICE_LOCATOR.equals(locator))return new com.ps3me.media.TonePlayer();
         throw new MediaException("Cannot create Player");
     }
 
@@ -570,6 +568,7 @@ public final class Manager {
      */
     public static Player createPlayer(InputStream stream, String type) throws IOException, MediaException {
         if(stream==null)throw new IllegalArgumentException();
+        if ("audio/x-tone-seq".equals(type)) return com.ps3me.media.TonePlayer.fromStream(stream);
         return new com.ps3me.media.AudioPlayer(stream,type);
     }
 
@@ -606,5 +605,6 @@ public final class Manager {
         if (note < 0 || note > 127 || duration <= 0) {
             throw new IllegalArgumentException("bad param");
         }
+        com.ps3me.media.TonePlayer.playTone(note,duration,volume);
     }
 }

@@ -23,9 +23,15 @@ extern "C" int ps3me_run_game(const char*,const char*,const char*,const char*);
 extern "C" void JVM_Stop(int);
 static bool inGame=false;
 static u64 diagnosticStopAt=0;
+#ifdef PS3ME_RUNTIME_REPLAY
+#include "../tests/RuntimeReplay.hpp"
+#endif
 extern "C" void ps3me_on_start(){if(inGame&&!ps3me::overlayActive())JVM_Stop(0);}
 extern "C" void ps3me_service_app(){
     sysUtilCheckCallback();
+#ifdef PS3ME_RUNTIME_REPLAY
+    if(inGame)ps3me_runtime_replay();
+#endif
     if(inGame&&diagnosticStopAt&&sysGetSystemTime()>=diagnosticStopAt){
         diagnosticStopAt=0;
         std::fprintf(stderr,"[PS3ME test] requesting return through Start handler\n");
@@ -87,7 +93,7 @@ int main(int argc,char** argv) {
     ::freopen((std::string(home)+"/logs/runtime.log").c_str(),"ab",stderr);
     ::setvbuf(stdout,0,_IOLBF,0);
     ::setvbuf(stderr,0,_IOLBF,0);
-    ::fprintf(stderr,"[PS3ME boot] build 01.14: initializing SDL video (audio deferred)\n");
+    ::fprintf(stderr,"[PS3ME boot] build 01.16: initializing SDL video (audio deferred)\n");
     if(SDL_Init(SDL_INIT_VIDEO)!=0){::fprintf(stderr,"[PS3ME boot] SDL_Init: %s\n",SDL_GetError());return 1;}
     ::fprintf(stderr,"[PS3ME boot] SDL video subsystem ready\n");
     ps3me::installPlatform(storage,video,controller,clock,heap,log);

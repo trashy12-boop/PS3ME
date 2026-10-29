@@ -6,7 +6,9 @@
 
 ## Tested on actual PS3 hardware
 
-**The project owner has tested PS3ME on a real PS3, and reports that almost every game they tried works.** Individual games still have compatibility issues, and crashes, missing sounds, or freezing are possible. This is **experimental software**, not a claim of universal compatibility. The specific **01.14 MP3 stack-overflow fix** passed host and build tests but had not yet been verified on physical PS3 hardware when packaged; earlier real-console tests do not prove that fix works.
+**Trashy12 has tested earlier PS3ME builds on a real PS3 and reports that most tested games work.** 01.16 has host and RPCS3 validation, including Bounce Tales reaching its menu and interactive Chapter 1 gameplay. **01.16 still needs physical PS3 verification.** Earlier hardware tests do not guarantee compatibility or stability for this update or every game.
+
+See the [01.16 compatibility audit](docs/COMPATIBILITY_AUDIT_01.16.md) for restored APIs, source comparisons, test evidence and remaining unsupported features.
 
 ## Download / install
 
@@ -86,10 +88,8 @@ This is not affiliated with or endorsed by Sony, Wellinator, salsa64 or OpenAI.
 
 **Project GPL-2.0-only**, inherited from PS2ME; see [LICENSE](LICENSE). Third-party dependencies and assets have their own licenses and exceptions, described in [THIRD_PARTY_NOTICES](docs/THIRD_PARTY_NOTICES.md). Preserve notices when redistributing. See also [AI disclosure](docs/AI_DISCLOSURE.md).
 
-This GitHub repository may still be importing the complete 01.14 source tree from the attached source ZIP. Refer to the release asset for the full snapshot until the import finishes. PS3 toolchain/firmware and commercial games are not bundled.
+Source, build scripts and dependency pins are included here. Release source ZIPs also retain the recovered native archives/ABI headers and validation logs used for incremental builds. PS3 SDK/firmware and game JARs are not bundled.
 
 ## Versions and tags
 
-Tags identify a **specific code snapshot**. Use `v1.14` for the 01.14 build; use **“PS3ME 01.14 | Experimental Alpha”** as the release title. The *pre-release* checkbox indicates unstable/experimental status. **“Alpha” belongs in the title/status, not the version tag.** Next release: `v1.15`, then `v1.16`. This makes downloads and updates unambiguous.
-
-See [01.14 release notes](RELEASE_NOTES_01.14.md).
+Tags identify a **specific code snapshot**. Versions use `v1.14`, `v1.15`, `v1.16`, and so on. Experimental/Alpha belongs in the release title and pre-release status. Current development build: **01.16**. See [01.16 release notes](RELEASE_NOTES_01.16.md).

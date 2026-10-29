@@ -11,10 +11,12 @@ def main():
         if(stream==null)throw new IllegalArgumentException();
         return new com.ps3me.media.AudioPlayer(stream,type);
     }'''+s[end:];manager.write_text(s)
+ from inject_compatibility import prepare_manager
+ prepare_manager()
  raw=out/'raw';verified=out/'verified';raw.mkdir(exist_ok=True);verified.mkdir(exist_ok=True)
  lib=r/'build/midp_ppu/classes.zip'
- subprocess.run(['java','-jar',str(a.ecj.resolve()),'-1.4','-bootclasspath',str(lib),'-d',str(raw),str(manager),str(r/'ps3/java/com/ps3me/media/AudioPlayer.java')],check=True)
- names=['javax.microedition.media.Manager','com.ps3me.media.AudioPlayer']
+ subprocess.run(['java','-jar',str(a.ecj.resolve()),'-1.4','-bootclasspath',str(lib),'-d',str(raw),str(manager)]+[str(r/('ps3/java/com/ps3me/media/'+name+'.java')) for name in ('AudioPlayer','TonePlayer','ToneSequence')],check=True)
+ names=['javax.microedition.media.Manager','com.ps3me.media.AudioPlayer','com.ps3me.media.TonePlayer','com.ps3me.media.ToneSequence']
  if a.proguard:
   nameset=set(n.replace('.','/')+'.class' for n in names)
   resolver=out/'resolver.zip';destination=out/'verified.zip'
@@ -29,7 +31,7 @@ def main():
   pre=src/'cldc/build/share/bin/linux_i386/preverify';pre.chmod(0o755);a.runner.chmod(0o755)
   subprocess.run([str(a.runner.resolve()),str(pre),'-classpath',str(raw)+':'+str(lib),'-d',str(verified)]+names,check=True)
  # Zip replacement, with no duplicate entries.
- files={n.replace('.','/')+'.class':(verified/(n.replace('.','/')+'.class')).read_bytes() for n in names};assert len(files)==2
+ files={n.replace('.','/')+'.class':(verified/(n.replace('.','/')+'.class')).read_bytes() for n in names};assert len(files)==4
  with zipfile.ZipFile(lib) as z:entries={x.filename:z.read(x) for x in z.infolist()}
  entries.update(files)
  with zipfile.ZipFile(lib,'w',zipfile.ZIP_DEFLATED) as z:

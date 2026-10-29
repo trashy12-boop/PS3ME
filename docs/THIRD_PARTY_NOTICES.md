@@ -21,3 +21,11 @@ Original third-party copyright and license terms remain applicable. GPL-2.0-only
 **No game piracy:** Commercial J2ME games are not distributed with PS3ME.
 
 Retain the notices in the complete 01.14 source ZIP when copying or redistributing it.
+
+## 01.16 reference-only comparisons
+
+FreeJ2ME (GPL-3.0-or-later) and J2ME Loader (Apache-2.0 plus per-file notices)
+were inspected as behavior references. No code or assets from those projects
+were copied into this GPL-2.0-only port. The compatibility audit identifies the
+exact reviewed commits. Nokia APIs restored from PS2ME retain upstream notices;
+new PS3 adapters are GPL-2.0-only.
