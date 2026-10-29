@@ -11,11 +11,13 @@ extern "C" {
 #include <javacall_properties.h>
 void ps3me_audio_register_natives();
 void ps3me_audio_shutdown();
+void ps3me_archive_reset();
 void ps3me_set_runtime_paths(const char*,const char*);
 }
 extern "C" int ps3me_run_game(const char* fileUrl,const char* appDirectory,const char* configDirectory,const char* classLibrary) {
     if(!fileUrl||!appDirectory||!configDirectory||!classLibrary)return -1;
     std::fprintf(stderr,"[PS3ME MIDP] initializing JVM\n");
+    ps3me_archive_reset();
     ps3me_audio_register_natives();
     JVM_Initialize();
     JVM_SetConfig(JVM_CONFIG_HEAP_CAPACITY,32*1024*1024);
@@ -36,6 +38,7 @@ extern "C" int ps3me_run_game(const char* fileUrl,const char* appDirectory,const
     pcsl_string_free(&mainClass);pcsl_string_free(&arg);
     ps3me_audio_shutdown();
     midpFinalize();
+    ps3me_archive_reset();
     std::fprintf(stderr,"[PS3ME MIDP] session finalized\n");
     return result;
 }

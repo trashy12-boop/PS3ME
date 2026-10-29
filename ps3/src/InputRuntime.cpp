@@ -23,7 +23,7 @@ static InputRouter router(sink);
 static ControlConfig config;
 
 static bool running=false,test=false,testReported=false;
-static uint64_t firstFrame=0;
+static uint64_t firstFrame=0,sessionStarted=0;
 static bool chordHeld=false,overlayTest=false;
 
 ControlConfig& controlConfig(){return config;
@@ -32,7 +32,7 @@ void beginInput(int w,int h){ps2::hal::EventQueue::instance().clear();
 router.begin(config,w,h);
 running=true;chordHeld=false;
 FILE* menuTest=std::fopen("/dev_hdd0/game/PS3ME0001/USRDIR/logs/ingame_test.once","rb");overlayTest=menuTest!=0;if(menuTest){std::fclose(menuTest);std::remove("/dev_hdd0/game/PS3ME0001/USRDIR/logs/ingame_test.once");}
-firstFrame=0;
+firstFrame=0;sessionStarted=sysGetSystemTime()/1000;
 testReported=false;
 const char* path="/dev_hdd0/game/PS3ME0001/USRDIR/logs/input_test.once";
 FILE* f=std::fopen(path,"rb");
@@ -76,7 +76,7 @@ bool pointerVisible(){return router.visible();
 }int pointerY(){return router.y();
 }bool pointerDown(){return router.touching();
 }
-void frameReady(){if(running&&!firstFrame)firstFrame=sysGetSystemTime()/1000;
+void frameReady(){if(running&&!firstFrame){firstFrame=sysGetSystemTime()/1000;std::fprintf(stderr,"[PS3ME startup] first Java frame after %llu ms (not necessarily loading complete)\n",(unsigned long long)(firstFrame-sessionStarted));}
 }
 }
 extern "C" int ps3me_pointer_supported(){return ps3me::controlConfig().pointer?1:0;

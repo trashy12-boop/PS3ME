@@ -18,7 +18,7 @@ def main():
         'build/midp_ppu/bin/ppu/libmidp.a','build/midp_ppu/ROMStructs.h','build/midp_ppu/classes.zip',
         'build/vm_ppu/ps3_ppu/dist/lib/libcldc_vm.a','build/vm_ppu/ps3_ppu/dist/lib/libcldc_vmx.a',
         'build/vm_ppu/ps3_ppu/target/product/ROMImage.o',
-        'build/pkgroot/ICON0.PNG','build/pkgroot/USRDIR/games/PS3ME_Diagnostic.jar','build/ps3/PS2ME_PS3_01.14.debug.elf'}
+        'build/pkgroot/ICON0.PNG','build/pkgroot/USRDIR/games/PS3ME_Diagnostic.jar','build/ps3/PS2ME_PS3_01.15.debug.elf'}
     kept_build.update(str(x.relative_to(ROOT)) for x in (ROOT/'build/pcsl_ppu').rglob('*.a'))
     for folder in ('build/midp_ppu/generated','build/vm_ppu/ps3_ppu/dist/include','build/pcsl_ppu/linux_ppu/inc'):
         kept_build.update(str(x.relative_to(ROOT)) for x in (ROOT/folder).glob('*.h*'))
