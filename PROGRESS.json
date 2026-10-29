@@ -1,0 +1,10 @@
+{
+  "version": "01.14",
+  "status": "native build / host-tested; console test pending",
+  "regression": "01.13 minimp3 frame 17040 exceeds pinned SDK SDL thread stack 16384",
+  "fix": "decode on 256 KiB joinable worker; callback only mixes bounded source PCM",
+  "host_assets_tested": 45,
+  "shared_native_resident_audio_budget_bytes": 16777216,
+  "console_tested": false,
+  "pkg_contains_game_jars": false
+}
