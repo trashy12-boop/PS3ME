@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   import:
-    if: github.event_name == 'workflow_dispatch' || github.event.release.tag_name == 'Alpha' || github.event.release.tag_name == 'v01.14'
+    if: github.event_name == 'workflow_dispatch' || github.event.release.tag_name == 'v1.14'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -23,7 +23,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release download Alpha --pattern PS2ME_PS3_Source_01.14.zip --dir "$RUNNER_TEMP"
+          gh release download v1.14 --pattern PS2ME_PS3_Source_01.14.zip --dir "$RUNNER_TEMP"
       - name: Verify and extract the archive
         shell: bash
         run: |
