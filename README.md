@@ -1,6 +1,6 @@
-# PS3ME: J2ME on PlayStation 3
+# PS3ME
 
-**Experimental native PS3 port of [PS2ME](https://github.com/Wellinator/PS2ME)** (the original PlayStation 2 J2ME emulator). PS3ME uses a PS3-native runtime, not PS2 backwards compatibility.
+**An experimental PS3 port of [PS2ME](https://github.com/Wellinator/PS2ME).** PS2ME was originally developed for PlayStation 2. PS3ME runs natively on PS3 rather than through PS2 backwards compatibility.
 
 **⚠️ Experimental software: Stability and compatibility are NOT guaranteed for any J2ME game, including games that worked in previous tests.** Individual games may crash, freeze, run slowly, behave incorrectly, or have broken sound/controls. Back up any important saved data before use.
 
