@@ -1,6 +1,6 @@
 # AI use and project authorship
 
-PS3ME is openly a **vibe-coded** project. The project owner, **trashy12-boop**, does not know how to program and does not claim to have personally written the port's code. The owner directed development, specified functionality, reported bugs, selected changes, and **tested versions on actual PlayStation 3 hardware**.
+PS3ME is openly a **vibe-coded** project. The project owner, **Trashy12**, does not know how to program and does not claim to have personally written the port's code. The owner directed development, specified functionality, reported bugs, selected changes, and **tested versions on actual PlayStation 3 hardware**.
 
 Substantial portions of the PS3 implementation, build scripts, tests, fixes, and documentation were generated or revised with AI assistance (including OpenAI Codex/ChatGPT). AI-generated code may have defects. Compatibility tests on the real console found most games tried by the owner worked, but this remains an experimental emulator, not a compatibility guarantee.
 
