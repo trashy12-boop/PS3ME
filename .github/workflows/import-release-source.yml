@@ -1,0 +1,61 @@
+name: Import PS3ME 01.14 source from release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: github.event.release.tag_name == 'v01.14'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Download release source archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release download v01.14 --pattern PS2ME_PS3_Source_01.14.zip --dir "$RUNNER_TEMP"
+      - name: Verify and extract the archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import zipfile
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'PS2ME_PS3_Source_01.14.zip'
+          assert archive.exists(), 'Missing 01.14 source ZIP release asset'
+          with zipfile.ZipFile(archive) as z:
+              members = z.infolist()
+              assert 100 < len(members) < 10000, 'Unexpected source count'
+              assert sum(f.file_size for f in members) < 300_000_000, 'Archive exceeds extraction budget'
+              for f in members:
+                  path = pathlib.PurePosixPath(f.filename)
+                  assert path.parts[0] == 'PS2ME_PS3_Source', f'Unexpected ZIP root: {path}'
+                  assert '..' not in path.parts, f'Unsafe traversal path: {path}'
+                  assert len(path.parts) > 1
+                  assert not (len(path.parts) > 1 and path.parts[1] in ('.github', '.git')), f'Git metadata in ZIP: {path}'
+              z.extractall(os.environ['RUNNER_TEMP'] + '/ps3me-import')
+          PY
+      - name: Import source and licenses, excluding ignored build output
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a "$RUNNER_TEMP/ps3me-import/PS2ME_PS3_Source/." .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Source tree is already current"
+          else
+            git commit -m "Import complete PS3ME 01.14 source snapshot"
+            git push origin HEAD:main
+          fi
