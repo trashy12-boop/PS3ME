@@ -1,0 +1,29 @@
+name: Rename PS3ME release tag to v1.14
+on:
+  push:
+    paths:
+      - .github/workflows/rename-release-tag.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Preserve release and assets while switching the tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_id=427398754
+          old_ref=$(gh api "repos/$GH_REPO/git/ref/tags/Alpha" --jq '.object.sha')
+          if ! gh api "repos/$GH_REPO/git/ref/tags/v1.14" >/dev/null 2>&1; then
+            gh api --method POST "repos/$GH_REPO/git/refs" -f ref="refs/tags/v1.14" -f sha="$old_ref"
+          fi
+          gh api --method PATCH "repos/$GH_REPO/releases/$release_id" -f tag_name='v1.14' -f name='PS3ME v1.14 - Experimental Alpha' -F prerelease=true
+          actual=$(gh api "repos/$GH_REPO/releases/$release_id" --jq '.tag_name')
+          test "$actual" = 'v1.14'
+          gh api --method DELETE "repos/$GH_REPO/git/refs/tags/Alpha"
+          gh api "repos/$GH_REPO/releases/$release_id" --jq '{tag_name,html_url,prerelease,assets:[.assets[].name]}'
