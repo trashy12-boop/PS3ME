@@ -75,7 +75,7 @@ Moving/renaming a JAR can make its saved control profile appear different becaus
 - **[Wellinator / PS2ME](https://github.com/Wellinator/PS2ME):** Original PS2 emulator and upstream project. PS3ME is an unofficial independent port.
 - **[salsa64](https://github.com/salsa64):** UI styling inspiration. No endorsement or authorship of this PS3 port is implied.
 - **OpenAI Codex / ChatGPT:** Substantial AI generation and revision of the port code, scripts, tests and documentation.
-- **Project owner (trashy12-boop):** Project direction, feature requests, feedback, and physical PS3 hardware testing. **The owner does not know how to code and openly describes this as a “vibe-coded” project.** The project does not falsely claim they personally hand-coded it.
+- **Project owner (Trashy12):** Project direction, feature requests, feedback, and physical PS3 hardware testing. **The owner does not know how to code and openly describes this as a “vibe-coded” project.** The project does not falsely claim they personally hand-coded it.
 - **phoneME, SDL_mixer, TinySoundFont/TinyMidiLoader, TiMidity++, TimGM6mb, DejaVu and other upstream contributors:** Retain their original copyright notices and licenses. See [third-party notices](docs/THIRD_PARTY_NOTICES.md).
 
 This is not affiliated with or endorsed by Sony, Wellinator, salsa64 or OpenAI.
