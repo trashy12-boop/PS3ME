@@ -3,13 +3,14 @@ name: Import PS3ME 01.14 source from release
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   import:
-    if: github.event.release.tag_name == 'v01.14'
+    if: github.event_name == 'workflow_dispatch' || github.event.release.tag_name == 'Alpha' || github.event.release.tag_name == 'v01.14'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -22,7 +23,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release download v01.14 --pattern PS2ME_PS3_Source_01.14.zip --dir "$RUNNER_TEMP"
+          gh release download Alpha --pattern PS2ME_PS3_Source_01.14.zip --dir "$RUNNER_TEMP"
       - name: Verify and extract the archive
         shell: bash
         run: |
@@ -50,6 +51,9 @@ jobs:
         run: |
           set -euo pipefail
           cp -a "$RUNNER_TEMP/ps3me-import/PS2ME_PS3_Source/." .
+          # Preserve updated front-page documentation, notes, and automation.
+          git restore --source=HEAD -- README.md RELEASE_NOTES_01.14.md LICENSE
+          git restore --source=HEAD -- .github/workflows/import-release-source.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add --all
