@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include "ControlMenu.hpp"
+#include "MenuLanguage.hpp"
+#include "MenuPrompt.hpp"
 #include "Controls.hpp"
 #include "Ps3Backend.hpp"
 #include <SDL_gfxPrimitives.h>
@@ -55,7 +57,7 @@ done=true;
 }}
 if(b.up&&!previous.up&&row>0)--row;
 
-if(b.down&&!previous.down&&row<BUTTON_COUNT+2)++row;
+if(b.down&&!previous.down&&row<BUTTON_COUNT+3)++row;
 
 
   int delta=((b.right&&!previous.right)||(b.cross&&!previous.cross))?1:0;
@@ -73,13 +75,13 @@ if(c.speed<60)c.speed=600;
 
 if(c.speed>600)c.speed=60;
 
-}else {c.deadzone+=delta*4;
+}else if(row==BUTTON_COUNT+2){c.deadzone+=delta*4;
 
 if(c.deadzone<12)c.deadzone=64;
 
 if(c.deadzone>64)c.deadzone=12;
 
-}}
+}else {menuLanguage()=menuLanguage()==MENU_PT_BR?MENU_EN:MENU_PT_BR;saveMenuLanguage();}}
   if(b.triangle&&!previous.triangle){c=ControlConfig();
 
 message="Defaults restored. Circle saves; Start cancels.";
@@ -97,7 +99,7 @@ else message="Could not save controls. Circle retries; Start cancels.";
 }
   SDL_FillRect(surface,0,SDL_MapRGB(surface->format,18,23,34));
 
-stringRGBA(surface,18,16,"CONTROLS / TOUCHSCREEN",100,190,255,255);
+stringRGBA(surface,18,16,tr("CONTROLES / TELA DE TOQUE","CONTROLS / TOUCHSCREEN"),100,190,255,255);
 
 
   int first=row>15?row-15:0;
@@ -105,7 +107,7 @@ stringRGBA(surface,18,16,"CONTROLS / TOUCHSCREEN",100,190,255,255);
 
   for(int i=first;
 
-i<BUTTON_COUNT+3&&i<first+16;
+i<BUTTON_COUNT+4&&i<first+16;
 
 i++){int y=43+(i-first)*15;
 
@@ -120,17 +122,18 @@ else if(i==BUTTON_COUNT)::snprintf(text,sizeof(text),"Right-stick cursor %s",c.p
 
 else if(i==BUTTON_COUNT+1)::snprintf(text,sizeof(text),"Cursor speed       %d",c.speed);
 
-else ::snprintf(text,sizeof(text),"Stick deadzone     %d",c.deadzone);
+else if(i==BUTTON_COUNT+2)::snprintf(text,sizeof(text),"%s     %d",tr("Zona morta","Stick deadzone"),c.deadzone);
+else ::snprintf(text,sizeof(text),"%s: %s",tr("Idioma","Language"),languageName());
 
 
    stringRGBA(surface,22,y,text,235,235,235,255);
 
 
   }
-  stringRGBA(surface,18,292,"Up/Down: select   Left/Right or X: change",235,235,235,255);
+  stringRGBA(surface,18,292,tr("Cima/Baixo: selecionar  Esquerda/Direita ou X: alterar","Up/Down: select   Left/Right or X: change"),235,235,235,255);
 
 
-  stringRGBA(surface,18,309,"Circle: save   Start: cancel   Triangle: defaults",235,235,235,255);
+  stringRGBA(surface,18,309,tr("O: salvar   START: cancelar   Triângulo: padrão","Circle: save   Start: cancel   Triangle: defaults"),235,235,235,255);
 
 
   stringRGBA(surface,18,331,message.c_str(),220,190,130,255);
