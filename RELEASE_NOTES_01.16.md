@@ -25,8 +25,8 @@ firmware or SDK are included in the install package. Do not delete appdb/config.
 
 **Validation is not universal compatibility:** host and RPCS3 evidence are
 documented in [the compatibility audit](docs/COMPATIBILITY_AUDIT_01.16.md).
-01.16 has not been verified on physical PS3 hardware. Existing versions have
-been tested on a real PS3 by Trashy12. No full-game completion is claimed.
+Trashy12 has now tested 01.16 on physical PS3 hardware and reports it works
+great. No full-game completion is claimed.
 
 Credits remain with the original PS2ME developers, phoneME contributors,
 Trashy12, salsa64 for UI inspiration, and the existing third-party components.
