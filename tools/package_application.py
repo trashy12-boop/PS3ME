@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 """Package an already built native application with PSL1GHT and verify its bytes."""
 from pathlib import Path
-import argparse,os,shutil,subprocess,sys
+import argparse,os,shutil,subprocess,sys,zipfile
 from validate_elf import validate
 ROOT=Path(__file__).resolve().parents[1]
 CID='UP0001-PS3ME0001_00-0000000000000001'
@@ -12,6 +12,16 @@ def main():
     p.add_argument('--crypto-libs',type=Path)
     p.add_argument('--include-test-jars',action='store_true',help='include the internal diagnostic MIDlets (development builds only)')
     a=p.parse_args();os.chdir(ROOT);sdk=ROOT/'deps/ps3dev';pkgtools=ROOT/'tools/packaging'
+    # Sources in a repository are not evidence of a usable packaged API.
+    with zipfile.ZipFile(ROOT/'build/midp_ppu/classes.zip') as runtime:
+        required={'com/ps3me/loader/GameLoader.class','com/ps3me/media/AudioPlayer.class',
+            'com/ps3me/media/TonePlayer.class','com/ps3me/media/ToneSequence.class',
+            'com/nokia/mid/ui/DeviceControl.class','com/nokia/mid/ui/FullCanvas.class',
+            'com/nokia/mid/ui/DirectUtils.class','com/nokia/mid/ui/DirectGraphics.class',
+            'com/nokia/mid/ui/DirectGraphicsImp.class','com/nokia/mid/sound/Sound.class',
+            'com/nokia/mid/sound/SoundListener.class','com/nokia/mid/sound/NokiaTone.class'}
+        missing=required-set(runtime.namelist())
+        if missing:raise RuntimeError('Runtime API packaging incomplete: '+', '.join(sorted(missing)))
     source_stage=ROOT/'build/pkgroot';stage=ROOT/'build/pkgroot_release'
     shutil.rmtree(stage,ignore_errors=True);shutil.copytree(source_stage,stage)
     env=os.environ.copy();env.setdefault('CC','gcc');env.setdefault('LDSHARED','gcc -shared')
@@ -50,7 +60,7 @@ def main():
         if not a.include_test_jars:
             for name in test_jars:(stage/'USRDIR/games'/name).unlink(missing_ok=True)
         assert (stage/'ICON0.PNG').is_file()
-        run([sys.executable,pkgtools/'sfo.py','--fromxml','--title','PS2ME PS3 - Experimental','--appid','PS3ME0001',ROOT/'ps3/sfo.xml',stage/'PARAM.SFO'])
+        run([sys.executable,pkgtools/'sfo.py','--fromxml','--title','PS3ME - Experimental','--appid','PS3ME0001',ROOT/'ps3/sfo.xml',stage/'PARAM.SFO'])
         run([sys.executable,pkgtools/'setup.py','build_ext','--inplace'],cwd=pkgtools)
         for f in stage.rglob('*'):
             if f.is_file():f.write_bytes(f.read_bytes())

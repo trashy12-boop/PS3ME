@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include "Video.hpp"
+#include <cstring>
 namespace ps3me {
 Rect fit(int sw,int sh,int dw,int dh) {
     Rect r={0,0,0,0};
@@ -29,27 +30,37 @@ uint32_t rgb565ToXrgb(uint16_t p) {
 void scaleRgb565(const uint16_t* src,int sw,int sh,uint32_t* dst,int dw,int dh,int pitch) {
     if(!src||!dst||sw<=0||sh<=0||dw<=0||dh<=0||pitch<dw)return;
 
-    for(int y=0;
-y<dh;
-++y)for(int x=0;
-x<dw;
-++x)dst[y*pitch+x]=0xff000000u;
-
+    // Integer quotient/remainder stepping is exactly floor(x*sw/r.w),
+    // without a division per TV pixel. Repeated destination rows are copies.
     Rect r=fit(sw,sh,dw,dh);
-
-    for(int y=0;
-y<r.h;
-++y) {
-        int sy=static_cast<int>(static_cast<int64_t>(y)*sh/r.h);
-
-        for(int x=0;
-x<r.w;
-++x) {
-            int sx=static_cast<int>(static_cast<int64_t>(x)*sw/r.w);
-
-            dst[(y+r.y)*pitch+x+r.x]=rgb565ToXrgb(src[sy*sw+sx]);
-
+    // Only letterbox pixels need clearing; image pixels are all overwritten.
+    for(int y=0;y<dh;++y) {
+        uint32_t* row=dst+y*pitch;
+        if(y<r.y||y>=r.y+r.h) {
+            for(int x=0;x<dw;++x)row[x]=0xff000000u;
+        } else {
+            for(int x=0;x<r.x;++x)row[x]=0xff000000u;
+            for(int x=r.x+r.w;x<dw;++x)row[x]=0xff000000u;
         }
+    }
+    const int xStep=sw/r.w,xRem=sw%r.w;
+    const int yStep=sh/r.h,yRem=sh%r.h;
+    int sy=0,yError=0,previous=-1;
+    for(int y=0;y<r.h;++y) {
+        uint32_t* row=dst+(y+r.y)*pitch+r.x;
+        if(sy==previous) {
+            std::memcpy(row,row-pitch,r.w*sizeof(uint32_t));
+        } else {
+            int sx=0,xError=0,last=-1;uint32_t color=0;
+            for(int x=0;x<r.w;++x) {
+                if(sx!=last){color=rgb565ToXrgb(src[sy*sw+sx]);last=sx;}
+                row[x]=color;
+                sx+=xStep;xError+=xRem;
+                if(xError>=r.w){xError-=r.w;++sx;}
+            }
+        }
+        previous=sy;sy+=yStep;yError+=yRem;
+        if(yError>=r.h){yError-=r.h;++sy;}
     }
 }
 void drawCursor(uint32_t* p,int w,int h,int pitch,Rect r,int x,int y,int sw,int sh,uint32_t dark,uint32_t light){

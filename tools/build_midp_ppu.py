@@ -12,6 +12,8 @@ def main():
     a=p.parse_args();source=ROOT/'deps/phoneME';sdk=ROOT/'deps/ps3dev';out=ROOT/'build/midp_ppu'
     from apply_midp_native64 import apply
     apply(source)
+    from apply_midp_compatibility import apply as compatibility
+    compatibility(source)
     from apply_installer_paths import apply as installer_paths
     from apply_jar_crc32 import apply as jar_crc
     installer_paths(source)
@@ -75,7 +77,7 @@ def main():
             result=subprocess.run(command[:-1]+['jpp'],stdout=log,stderr=subprocess.STDOUT,env=env,timeout=90)
             if result.returncode==0 and not a.classes_only:
                 result=subprocess.run(command[:-1]+[str(out/'classes.zip')],stdout=log,stderr=subprocess.STDOUT,env=env,timeout=240)
-            if result.returncode==0 and not a.classes_only:
+            if result.returncode==0:
                 from inject_bootloader import inject
                 inject(a.jdk.resolve(),a.runner.resolve() if a.runner else None)
             if result.returncode==0:

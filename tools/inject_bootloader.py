@@ -13,3 +13,5 @@ def inject(jdk,runner):
     subprocess.run(command,check=True)
     subprocess.run([str(jdk/'bin/jar'),'uf',str(out/'classes.zip'),'-C',str(verified),'com/ps3me/loader/GameLoader.class'],check=True)
     print('PS3 bootstrap MIDlet compiled, preverified and injected',flush=True)
+    from inject_compatibility import inject as inject_compatibility
+    inject_compatibility(jdk,runner)

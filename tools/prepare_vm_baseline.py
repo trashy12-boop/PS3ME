@@ -9,6 +9,12 @@ from pathlib import Path
 
 
 def prepare(root: Path) -> None:
+    # Java package names cannot start with a dot; ignore sync/editor staging.
+    verifier = root / "preverifier/src/main.c"
+    code = verifier.read_text()
+    code = code.replace('if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0)',
+                        "if (name[0] == '.')")
+    verifier.write_text(code)
     makefile = root / "cldc/build/share/jvm.make"
     text = makefile.read_text()
     if '.DELETE_ON_ERROR:' not in text:
