@@ -4,6 +4,8 @@
 #include "GameSettings.hpp"
 #include "ControlMenu.hpp"
 #include "BrowserUI.hpp"
+#include "MenuLanguage.hpp"
+#include <SDL_ttf.h>
 #include "hal/LcdDevice.hpp"
 #include <SDL_gfxPrimitives.h>
 #include <sys/process.h>
@@ -76,6 +78,22 @@ int launch(const std::string& chosen,int width,int height) {
     ps2::hal::LcdDevice::instance().setResolution(width,height);
     std::string config=std::string(home)+"/lib/",classes=config+"classes.zip",url="file://"+chosen;
     std::fprintf(stderr,"[PS3ME] loading %s\n",chosen.c_str());
+    // Present the message before blocking in VM initialization.
+    SDL_Surface* splashScreen=SDL_GetVideoSurface();
+    if(splashScreen){
+        SDL_Surface* splash=SDL_CreateRGBSurface(SDL_SWSURFACE,1280,720,32,0xff0000,0xff00,0xff,0);
+        if(splash){
+            for(int y=0;y<720;y++)hlineRGBA(splash,0,1279,y,23+y*17/720,64-y*45/720,91-y*26/720,255);
+            SDL_Color color={235,244,255,0};
+            TTF_Font* f=TTF_OpenFont("/dev_hdd0/game/PS3ME0001/USRDIR/ui/DejaVuSans.ttf",34);
+            if(f){
+                SDL_Surface* label=TTF_RenderUTF8_Blended(f,ps3me::tr("Carregando jogo...","Loading game..."),color);
+                if(label){SDL_Rect pos={(Sint16)(640-label->w/2),330,0,0};SDL_BlitSurface(label,0,splash,&pos);SDL_FreeSurface(label);}
+                TTF_CloseFont(f);
+            }else stringRGBA(splash,540,345,ps3me::tr("Carregando jogo...","Loading game..."),235,244,255,255);
+            SDL_SoftStretch(splash,0,splashScreen,0);SDL_Flip(splashScreen);SDL_FreeSurface(splash);
+        }
+    }
     ps3me::beginInput(width,height);
     inGame=true;int result=ps3me_run_game(url.c_str(),db.c_str(),config.c_str(),classes.c_str());inGame=false;ps3me::endInput();ps3me::gameSettings().end(ps3me::controlConfig());
     std::fprintf(stderr,"[PS3ME] MIDP returned %d\n",result);
@@ -87,6 +105,7 @@ int main(int argc,char** argv) {
     directories(std::string(home)+"/games");directories(std::string(home)+"/appdb");directories(std::string(home)+"/logs");
     directories(std::string(home)+"/config");
     ps3me::controlConfig().load((std::string(home)+"/config/controls.cfg").c_str());
+    ps3me::loadMenuLanguage();
     ps3me::Storage storage(std::vector<std::string>{std::string(home)+"/games","/dev_usb000","/dev_usb001"});
     ps3me::Framebuffer video;ps3me::Controller controller;ps3me::Clock clock;ps3me::Heap heap;ps3me::Log log;
     ::freopen((std::string(home)+"/logs/runtime.log").c_str(),"ab",stdout);
@@ -103,7 +122,7 @@ int main(int argc,char** argv) {
     SDL_Surface* menu=SDL_CreateRGBSurface(SDL_SWSURFACE,1280,720,32,0xff0000,0xff00,0xff,0);
     if(!menu){::fprintf(stderr,"[PS3ME boot] menu surface failed: %s\n",SDL_GetError());SDL_Quit();return 3;}
     ::fprintf(stderr,"[PS3ME boot] entering menu\n");
-    std::string path=std::string(home)+"/games",message="Right stick: cursor. R2: touch/drag. Square: remap controls.";
+    std::string path=std::string(home)+"/games",message=ps3me::tr("Direcional direito: cursor. R2: toque. Quadrado: controles.","Right stick: cursor. R2: touch/drag. Square: remap controls.");
     std::vector<Entry> entries=list(path);int selected=0,resolution=1;
     const int dimensions[][2]={{176,220},{240,320},{320,240},{352,416},{480,800}};
     // Explicit opt-in tests; normal XMB boot always opens the browser.
@@ -136,7 +155,7 @@ int main(int argc,char** argv) {
         if(b.down&&!previous.down&&selected+1<static_cast<int>(entries.size()))++selected;
         if(b.triangle&&!previous.triangle)resolution=(resolution+1)%5;
         bool reload=false;
-        if(b.select&&!previous.select){reload=true;ps3me_browser_clear();message="Library refreshed.";}
+        if(b.select&&!previous.select){reload=true;ps3me_browser_clear();message=ps3me::tr("Biblioteca atualizada.","Library refreshed.");}
         if(b.l1&&!previous.l1){path="/dev_usb000";reload=true;}
         if(b.r1&&!previous.r1){path="/dev_hdd0";reload=true;}
         if(b.circle&&!previous.circle){size_t at=path.find_last_of('/');path=at==0?"/":path.substr(0,at);reload=true;}
