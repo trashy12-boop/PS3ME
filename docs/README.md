@@ -1,18 +1,16 @@
-# Documentation
+# PS3ME documentation
 
-Start with the [main README](../README.md) for installation, controls, game paths, saves, credits and licenses.
+The [main README](../README.md) is the primary guide for installation, game locations, controller mappings, save data, credits, and licensing.
 
-## Latest development notes
+## Historical guides
 
-- [v1.19 changes and known issues](../RELEASE_NOTES_01.19.md)
+These documents describe previous releases and are retained for reference:
 
-## Archived version-specific READMEs
+- [PS3 notes for v1.16](archive/README_PS3_01.16.md)
+- [v1.05 guide](archive/README_PS3_01.05.md)
+- [v1.06 guide](archive/README_PS3_01.06.md)
+- [v1.07 guide](archive/README_PS3_01.07.md)
 
-Historical documents retained for reference. They describe the behavior of older builds, not the current release.
+Version-specific release notes are available in the repository root as `RELEASE_NOTES_*.md`. See [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases) for published versions.
 
-- [v1.16 PS3 notes](archive/README_PS3_01.16.md)
-- [v1.05](archive/README_PS3_01.05.md)
-- [v1.06](archive/README_PS3_01.06.md)
-- [v1.07](archive/README_PS3_01.07.md)
-
-Older `RELEASE_NOTES_*.md` files remain at the repository root until a separate release-notes migration is verified.
+Historical guides should not be treated as documentation for the latest published release.
