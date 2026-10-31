@@ -6,13 +6,21 @@
 
 ## Tested on actual PS3 hardware
 
-**Trashy12 has tested earlier PS3ME builds on a real PS3 and reports that most tested games work.** 01.16 has host and RPCS3 validation, including Bounce Tales reaching its menu and interactive Chapter 1 gameplay. **01.16 still needs physical PS3 verification.** Earlier hardware tests do not guarantee compatibility or stability for this update or every game.
+**Trashy12 has tested earlier PS3ME builds on a real PS3 and reports that most tested games work.** 01.16 has host and RPCS3 validation, including Bounce Tales reaching its menu and interactive Chapter 1 gameplay. **Later releases through v1.19 have been tested on real PS3 hardware and have known menu crashes.** Earlier hardware tests do not guarantee compatibility or stability for this update or every game.
 
 See the [01.16 compatibility audit](docs/COMPATIBILITY_AUDIT_01.16.md) for restored APIs, source comparisons, test evidence and remaining unsupported features.
 
+## Known issues in v1.19 (real PS3 tests)
+
+- **The game browser freezes after a few seconds.** Still unresolved on v1.19.
+- **Pressing the PS button while in the browser can crash/freeze the console.** Still unresolved.
+- Menu animations can feel less smooth than Salsa64.
+
+v1.16 predates the new Salsa64-inspired browser changes and remains a reference for diagnosing these regressions. See [v1.19 changes](RELEASE_NOTES_01.19.md).
+
 ## Download / install
 
-Get the downloadable `.pkg` from [GitHub Releases](https://github.com/trashy12-boop/PS3ME-a-PS2ME-Fork/releases). Enable PS3 homebrew support (e.g. HEN) and install the PKG. When upgrading, install over the existing installation so existing game data remains intact. Title ID: `PS3ME0001`.
+Get the downloadable `.pkg` from [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases). Enable PS3 homebrew support (e.g. HEN) and install the PKG. When upgrading, install over the existing installation so existing game data remains intact. Title ID: `PS3ME0001`.
 
 **Where to put games:** Place your own legally obtained J2ME `.jar` or `.jad` games inside:
 ```text
@@ -92,4 +100,4 @@ Source, build scripts and dependency pins are included here. Release source ZIPs
 
 ## Versions and tags
 
-Tags identify a **specific code snapshot**. Versions use `v1.14`, `v1.15`, `v1.16`, and so on. Experimental/Alpha belongs in the release title and pre-release status. Current development build: **01.16**. See [01.16 release notes](RELEASE_NOTES_01.16.md).
+Tags identify a **specific code snapshot**. Versions use `v1.14`, `v1.15`, `v1.16`, and so on. Experimental/Alpha belongs in the release title and pre-release status. Latest tested development build: **01.19**, with unresolved menu freezes and PS-button crashes. See [v1.19 release notes](RELEASE_NOTES_01.19.md), [documentation index](docs/README.md), and [v1.16 release notes](RELEASE_NOTES_01.16.md).
