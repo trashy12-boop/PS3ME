@@ -1,10 +1,9 @@
 {
-  "version": "01.14",
-  "status": "native build / host-tested; console test pending",
-  "regression": "01.13 minimp3 frame 17040 exceeds pinned SDK SDL thread stack 16384",
-  "fix": "decode on 256 KiB joinable worker; callback only mixes bounded source PCM",
-  "host_assets_tested": 45,
-  "shared_native_resident_audio_budget_bytes": 16777216,
-  "console_tested": false,
-  "pkg_contains_game_jars": false
+  "version": "01.23",
+  "status": "XMB heartbeat implemented; native build and host model validated; console verification pending",
+  "ps_button_fix": "Retained-image heartbeat during XMB; defer before SDL framebuffer upload while a real flip is pending; CPU synchronization replaces GPU wait",
+  "bounce_tales": "unmodified JAR reaches menu and interactive Chapter 1 in RPCS3 (01.16 baseline)",
+  "physical_ps3_tested": false,
+  "pkg_contains_game_jars": false,
+  "audit": "RELEASE_NOTES_01.23.md"
 }

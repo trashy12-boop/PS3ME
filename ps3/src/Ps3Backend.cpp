@@ -16,7 +16,14 @@
 #include <cstring>
 
 extern "C" void ps3me_on_start() __attribute__((weak));
+// Defined by XmbGate.cpp. Weak so the platform archive still links on its
+// own in the host and native link checks.
+extern "C" int ps3me_xmb_open() __attribute__((weak));
+extern "C" void ps3me_pump_sysutil() __attribute__((weak));
+extern "C" int ps3me_present_blocked() __attribute__((weak));
+extern "C" void ps3me_display_tick() __attribute__((weak));
 namespace ps3me {
+static bool xmbHoldsDisplay(){return ps3me_xmb_open&&ps3me_xmb_open()!=0;}
 static_assert(sizeof(javacall_pixel)==2,"MIDP requires RGB565 pixels");
 static_assert(sizeof(javacall_int32)==4,"JavaCall integers must remain 32 bits");
 static_assert(sizeof(javacall_int64)==8,"JavaCall longs must remain 64 bits");
@@ -42,6 +49,9 @@ javacall_pixel* Framebuffer::map(int w,int h) {
 void Framebuffer::unmap(){::free(raster_);raster_=0;width_=height_=0;haveFrame_=false;}
 void Framebuffer::present() {
     if(!raster_||!converted_||!screen_)return;
+    // XMB needs flips even when game updates stop. The retained screen is
+    // serviced by display_tick; defer game uploads while a flip is pending.
+    if(xmbHoldsDisplay()||(ps3me_present_blocked&&ps3me_present_blocked()))return;
     // Confirm the diagnostic's actual RGB565 raster reached the native backend.
     static bool bandsReported=false;
     if(!bandsReported&&width_==240&&height_>=240){
@@ -56,10 +66,12 @@ void Framebuffer::present() {
     scaleRgb565(raster_,width_,height_,static_cast<uint32_t*>(converted_->pixels),
                 converted_->w,converted_->h,converted_->pitch/4);
     SDL_UnlockSurface(converted_);
-    haveFrame_=true;ps3me_input_frame_ready();blitCursor();
+    haveFrame_=true;ps3me_input_frame_ready();blitCursor(false);
 }
 
-void Framebuffer::blitCursor(){
+void Framebuffer::blitCursor(bool force){
+ // Game/cursor updates pause with XMB; display_tick repeats the retained frame.
+ if(!force&&xmbHoldsDisplay())return;
  SDL_BlitSurface(converted_,0,screen_,0);
  if(pointerVisible()&&screen_->format->BytesPerPixel==4&&SDL_LockSurface(screen_)==0){
   drawCursor((uint32_t*)screen_->pixels,screen_->w,screen_->h,screen_->pitch/4,fit(width_,height_,screen_->w,screen_->h),pointerX(),pointerY(),width_,height_,SDL_MapRGB(screen_->format,0,0,0),pointerDown()?SDL_MapRGB(screen_->format,255,210,40):SDL_MapRGB(screen_->format,255,255,255));
@@ -69,9 +81,10 @@ void Framebuffer::blitCursor(){
 }
 void Framebuffer::refreshCursor(){
  if(!haveFrame_||!screen_||!converted_||!pointerVisible())return;
+ if(xmbHoldsDisplay())return;
  if(pointerX()==paintedX_&&pointerY()==paintedY_&&pointerDown()==paintedDown_)return;
  if(sysGetSystemTime()-lastFlip_<33000)return;
- blitCursor();
+ blitCursor(false);
 }
 static Framebuffer* activeFramebuffer=0;
 void Framebuffer::presentRegion(int first,int last){if(first<=last&&last>=0&&first<height_)present();}
@@ -87,6 +100,9 @@ bool Controller::ensureReady() {
 }
 bool Controller::read(ps2::hal::PadButtons* out) {
     if(!out)return false;
+    // Do not touch the pad while the XMB is open: the reports belong to the
+    // system menu, and an edge taken from them would leak into the game.
+    if(xmbHoldsDisplay()){last_=ps2::hal::PadButtons();*out=last_;return true;}
     if(!ensureReady()){*out=ps2::hal::PadButtons();return true;} // release held keys on disconnect
     padData data;std::memset(&data,0,sizeof(data));
     if(ioPadGetData(port_,&data)!=PAD_OK)return false;
@@ -105,7 +121,18 @@ bool Controller::read(ps2::hal::PadButtons* out) {
 javacall_int64 Clock::wallClockMillis(){u64 s=0,n=0;return sysGetCurrentTime(&s,&n)==0?static_cast<javacall_int64>(s*1000+n/1000000):0;}
 javacall_int64 Clock::monotonicCounter(){return static_cast<javacall_int64>(sysGetSystemTime());}
 javacall_int64 Clock::monotonicFrequency(){return 1000000;}
-void Clock::sleep(javacall_uint64 ms){while(ms){unsigned int chunk=ms>1000?1000:static_cast<unsigned int>(ms);sysUsleep(chunk*1000);ms-=chunk;}}
+void Clock::sleep(javacall_uint64 ms){
+    // A MIDlet's Thread.sleep() previously waited with the sysutil queue
+    // undrained, so a PS button press during a long sleep was not seen until
+    // the sleep ended. Sleep in short slices and drain the queue between them.
+    static u64 lastPump=0;
+    while(ms){
+        unsigned int chunk=ms>10?10:static_cast<unsigned int>(ms);
+        sysUsleep(chunk*1000);ms-=chunk;
+        const u64 now=sysGetSystemTime();
+        if(ps3me_pump_sysutil&&now-lastPump>=10000){lastPump=now;ps3me_pump_sysutil();if(ps3me_display_tick)ps3me_display_tick();}
+    }
+}
 void* Heap::allocate(unsigned int n){return ::malloc(n);}
 void* Heap::reallocate(void* p,unsigned int n){return ::realloc(p,n);}
 void Heap::deallocate(void* p){::free(p);}
