@@ -6,17 +6,13 @@
 
 ## Tested on actual PS3 hardware
 
-**Trashy12 has tested earlier PS3ME builds on a real PS3 and reports that most tested games work.** 01.16 has host and RPCS3 validation, including Bounce Tales reaching its menu and interactive Chapter 1 gameplay. **Later releases through v1.19 have been tested on real PS3 hardware and have known menu crashes.** Earlier hardware tests do not guarantee compatibility or stability for this update or every game.
+**Trashy12 has tested earlier PS3ME builds on a real PS3 and reports that most tested games work.** 01.16 has host and RPCS3 validation, including Bounce Tales reaching its menu and interactive Chapter 1 gameplay. **Earlier v1.19 builds had menu freezes and PS-button crashes during real PS3 testing. Those regressions were subsequently reported fixed. The current build is v1.23.** Hardware testing does not guarantee compatibility or stability for every game.
 
 See the [01.16 compatibility audit](docs/COMPATIBILITY_AUDIT_01.16.md) for restored APIs, source comparisons, test evidence and remaining unsupported features.
 
-## Known issues in v1.19 (real PS3 tests)
+## Earlier v1.19 issues (historical)
 
-- **The game browser freezes after a few seconds.** Still unresolved on v1.19.
-- **Pressing the PS button while in the browser can crash/freeze the console.** Still unresolved.
-- Menu animations can feel less smooth than Salsa64.
-
-v1.16 predates the new Salsa64-inspired browser changes and remains a reference for diagnosing these regressions. See [v1.19 changes](RELEASE_NOTES_01.19.md).
+v1.19 had game-browser freezes and PS-button-related crashes on real hardware. These regressions were subsequently reported fixed, so they are not listed as known unresolved issues for v1.23. For historical details, see [v1.19 release notes](RELEASE_NOTES_01.19.md).
 
 ## Download / install
 
@@ -100,4 +96,4 @@ Source, build scripts and dependency pins are included here. Release source ZIPs
 
 ## Versions and tags
 
-Tags identify a **specific code snapshot**. Versions use `v1.14`, `v1.15`, `v1.16`, and so on. Experimental/Alpha belongs in the release title and pre-release status. Latest tested development build: **01.19**, with unresolved menu freezes and PS-button crashes. See [v1.19 release notes](RELEASE_NOTES_01.19.md), [documentation index](docs/README.md), and [v1.16 release notes](RELEASE_NOTES_01.16.md).
+Tags identify a **specific code snapshot**. Versions use `v1.14`, `v1.15`, `v1.16`, and so on. Experimental/Alpha belongs in the release title and pre-release status. Current build: **01.23**. For downloads, check [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases). See [documentation index](docs/README.md), [v1.19 release notes](RELEASE_NOTES_01.19.md), and [v1.16 release notes](RELEASE_NOTES_01.16.md).
