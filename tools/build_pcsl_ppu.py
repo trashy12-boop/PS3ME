@@ -9,6 +9,7 @@ def main():
     src=ROOT/'deps/phoneME/pcsl';sdk=ROOT/'deps/ps3dev';out=ROOT/'build/pcsl_ppu'
     from apply_pcsl_ps3 import apply
     apply(ROOT/'deps/phoneME')
+    shutil.copytree(ROOT/'pcsl/ps3_network',src/'network/ps3_network',dirs_exist_ok=True)
     shutil.copy2(ROOT/'pcsl/ps3_ppu_gcc.gmk',src/'makefiles/platforms/ps3_ppu_gcc.gmk')
     types=src/'types/ps3_ppu_gcc';types.mkdir(exist_ok=True)
     shutil.copy2(ROOT/'pcsl/java_types_md.h',types/'java_types_md.h')

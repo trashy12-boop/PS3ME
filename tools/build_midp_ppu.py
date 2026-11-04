@@ -14,6 +14,8 @@ def main():
     apply(source)
     from apply_midp_compatibility import apply as compatibility
     compatibility(source)
+    from apply_network_compatibility import apply as network_compatibility
+    network_compatibility(source)
     from apply_installer_paths import apply as installer_paths
     from apply_jar_crc32 import apply as jar_crc
     installer_paths(source)
@@ -81,6 +83,7 @@ def main():
                 from inject_bootloader import inject
                 inject(a.jdk.resolve(),a.runner.resolve() if a.runner else None)
             if result.returncode==0:
+                subprocess.run([sys.executable,str(ROOT/'tools/build_network_java.py'),'--jdk',str(a.jdk.resolve())]+(['--runner',str(a.runner.resolve())] if a.runner else []),stdout=log,stderr=subprocess.STDOUT,env=env,check=True)
                 result=subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,env=env,timeout=240)
         report.update(status='built' if result.returncode==0 else 'failed',build_exit_code=result.returncode,
                       classes_zip_exists=(out/'classes.zip').is_file())
