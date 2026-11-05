@@ -17,12 +17,14 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #ifdef PS3ME_PPU
 #include <net/net.h>
+#include <sys/systime.h>
 #include <net/netctl.h>
 #include <net/poll.h>
 #define NETERR net_errno
@@ -30,6 +32,7 @@
 #define INPROGRESS NET_EINPROGRESS
 #define ALREADY NET_EALREADY
 #define INTERRUPTED NET_EINTR
+#define TIMEOUT_ERROR NET_ETIMEDOUT
 #define CLOSE(fd) netClose((fd)&~SOCKET_FD_MASK)
 /* PSL1GHT's SDK has no netinet/tcp.h. */
 #define TCP_NODELAY 1
@@ -43,6 +46,7 @@
 #define INPROGRESS EINPROGRESS
 #define ALREADY EALREADY
 #define INTERRUPTED EINTR
+#define TIMEOUT_ERROR ETIMEDOUT
 #define CLOSE close
 #endif
 #define SOCKETS 32
@@ -52,7 +56,23 @@
 #define LOOKUP_WAIT 3
 /* Returns nonzero only when the event was queued; a full queue is retried. */
 extern int ps3me_network_signal(int handle, int kind, int status);
-typedef struct { int id, fd, wait; } Socket;
+#define CONNECT_TIMEOUT_MS 15000
+static uint64_t monotonic_ms(void) {
+#ifdef PS3ME_NETWORK_TEST
+    extern uint64_t ps3me_network_test_time_ms(void);
+    return ps3me_network_test_time_ms();
+#elif defined(PS3ME_PPU)
+    return sysGetSystemTime()/1000;
+#else
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC,&t);
+    return (uint64_t)t.tv_sec*1000+t.tv_nsec/1000000;
+#endif
+}
+typedef struct {
+    int id, fd, wait, connecting, connect_error;
+    uint64_t connect_started;
+} Socket;
 typedef struct {
     int id, done, notified, abandoned, result;
     char name[256]; unsigned char address[4]; SDL_Thread *thread;
@@ -101,9 +121,13 @@ int pcsl_network_init_start(PCSL_NET_CALLBACK cb) {
     (void)cb;
     if(initialized) return PCSL_NET_SUCCESS;
 #ifdef PS3ME_PPU
-    if(netInitialize()<0) return PCSL_NET_IOERROR;
+    { int r=netInitialize();
+      fprintf(stderr,"[PS3ME net] initialize result=%d\n",r);
+      if(r<0) return PCSL_NET_IOERROR; }
     /* netctl is used for querying the console's configured interface only. */
-    netCtlInit();
+    { int r=netCtlInit(),state=-1;
+      if(r==0 || (unsigned int)r==NET_CTL_ERROR_NOT_TERMINATED) netCtlGetState(&state);
+      fprintf(stderr,"[PS3ME net] interface init=%d state=%d (3=IP obtained)\n",r,state); }
 #endif
     dns_lock=SDL_CreateMutex();
     if(!dns_lock) return PCSL_NET_IOERROR;
@@ -199,6 +223,14 @@ void ps3me_network_poll(void) {
             if(!s->wait) memset(s,0,sizeof(*s));
             continue;
         }
+        if(s->connecting && monotonic_ms()-s->connect_started>=CONNECT_TIMEOUT_MS) {
+            if(!s->connect_error) {
+                s->connect_error=TIMEOUT_ERROR;
+                fprintf(stderr,"[PS3ME net] connect timeout handle=%d after %d ms\n",s->id,CONNECT_TIMEOUT_MS);
+            }
+            if(ps3me_network_signal(s->id,WRITE_WAIT,PCSL_NET_IOERROR)) s->wait&=~WRITE_WAIT;
+            continue;
+        }
         map[n]=s; fds[n].fd=s->fd;
         fds[n].events=((s->wait&READ_WAIT)?POLLIN:0)|((s->wait&WRITE_WAIT)?POLLOUT:0);
         fds[n++].revents=0;
@@ -227,23 +259,37 @@ int pcsl_socket_open_start(unsigned char *ip,int port,void **h,void **ctx) {
     if(pcsl_network_init()!=0) return PCSL_NET_IOERROR;
     fd=socket(AF_INET,SOCK_STREAM,0); if(fd<0) return failed();
     s=adopt(fd); if(!s) return PCSL_NET_IOERROR;
-    address(&a,ip,port); r=connect(fd,(struct sockaddr*)&a,sizeof(a));
-    if(r==0) { *h=handle(s); return 0; }
+    address(&a,ip,port);
+    fprintf(stderr,"[PS3ME net] connecting handle=%d to %u.%u.%u.%u:%d\n",s->id,ip[0],ip[1],ip[2],ip[3],port);
+    r=connect(fd,(struct sockaddr*)&a,sizeof(a));
+    if(r==0) { *h=handle(s); fprintf(stderr,"[PS3ME net] connected handle=%d\n",s->id); return 0; }
     last_error=NETERR;
-    if(wouldblock()) { s->wait|=WRITE_WAIT; *h=handle(s); return PCSL_NET_WOULDBLOCK; }
+    if(wouldblock()) {
+        s->connecting=1; s->connect_started=monotonic_ms();
+        s->wait|=WRITE_WAIT; *h=handle(s); return PCSL_NET_WOULDBLOCK;
+    }
+    fprintf(stderr,"[PS3ME net] connect failed handle=%d error=%d\n",s->id,last_error);
     discard(s); return PCSL_NET_CONNECTION_NOTFOUND;
 }
 int pcsl_socket_open_finish(void *h,void *ctx) {
     Socket *s=find(h); struct pollfd p; int e=0; socklen_t size=sizeof(e); (void)ctx;
     if(!s) return PCSL_NET_INTERRUPTED;
+    if(s->connect_error || (s->connecting && monotonic_ms()-s->connect_started>=CONNECT_TIMEOUT_MS)) {
+        last_error=s->connect_error?s->connect_error:TIMEOUT_ERROR;
+        discard(s); return PCSL_NET_IOERROR;
+    }
     p.fd=s->fd; p.events=POLLOUT; p.revents=0;
     { int ready=poll(&p,1,0);
     if(ready<0) { last_error=NETERR; discard(s); return PCSL_NET_IOERROR; }
     if(ready==0) { s->wait|=WRITE_WAIT; return PCSL_NET_WOULDBLOCK; }
     }
     if(getsockopt(s->fd,SOL_SOCKET,SO_ERROR,&e,&size)<0) e=NETERR;
-    if(e) { last_error=e; discard(s); return PCSL_NET_IOERROR; }
-    s->wait&=~WRITE_WAIT; return 0;
+    if(e) {
+        last_error=e; fprintf(stderr,"[PS3ME net] connect failed handle=%d error=%d\n",s->id,e);
+        discard(s); return PCSL_NET_IOERROR;
+    }
+    s->connecting=0; s->wait&=~WRITE_WAIT;
+    fprintf(stderr,"[PS3ME net] connected handle=%d\n",s->id); return 0;
 }
 static int transfer(void *h,void *data,int len,int *count,int writeop) {
     Socket *s=find(h); int r,flag=writeop?WRITE_WAIT:READ_WAIT;

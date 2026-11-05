@@ -90,3 +90,21 @@ Two headers missing from the GitHub 1.23 snapshot (BrowserUI.hpp and
 Ps3Backend.hpp) were restored from its official 1.23 release source archive so
 that the current native sources compile. The 1.23 XMB heartbeat/flip-guard logic
 is retained.
+
+## QR login connection follow-up
+
+A console report reached Discord's QR screen but remained on `Connecting...`.
+Upstream changes that text only after opening its TCP gateway socket. The port
+now bounds TCP connection attempts at 15 seconds and wakes the Java waiter with
+an I/O failure; Discord's existing exception handler can then try its HTTP QR
+fallback. This does not impose read deadlines on established chat connections.
+A deterministic stalled-readiness test confirms the timeout, event-queue retry,
+error delivery, socket cleanup and successful subsequent connection, alongside
+the existing real-socket ASan/UBSan tests.
+
+New `[PS3ME net]` runtime lines record interface state, numeric connection
+endpoint, open success/failure, timeout and queued write readiness. They do not
+record request payloads, authorization headers, tokens or QR contents. These
+changes address the unbounded-connect behavior, but the console's underlying
+connectivity issue remains unconfirmed without its runtime log. No successful
+QR retrieval or Discord account login is claimed for this follow-up build.

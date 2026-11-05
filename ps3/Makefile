@@ -54,5 +54,5 @@ include javacall.mk
 # Requires SDL 1.2 development headers/libraries and the built PCSL headers.
 .PHONY: test-network
 test-network: | $(BUILD)
-	$(CC) -std=c99 -D_DEFAULT_SOURCE -DENABLE_SERVER_SOCKET -Wall -Wextra -Werror -Wno-misleading-indentation -g -fsanitize=address,undefined `sdl-config --cflags` -I$(ROOT)/pcsl/ps3_network -I$(ROOT)/build/pcsl_ppu/linux_ppu/inc -I$(PHONEME_SRC)/pcsl/network $(ROOT)/pcsl/ps3_network/pcsl_network.c $(ROOT)/tests/network_transport_test.c `sdl-config --libs` -o $(BUILD)/network_transport_test
+	$(CC) -std=c99 -D_DEFAULT_SOURCE -DPS3ME_NETWORK_TEST -DENABLE_SERVER_SOCKET -Wall -Wextra -Werror -Wno-misleading-indentation -g -fsanitize=address,undefined `sdl-config --cflags` -I$(ROOT)/pcsl/ps3_network -I$(ROOT)/build/pcsl_ppu/linux_ppu/inc -I$(PHONEME_SRC)/pcsl/network $(ROOT)/pcsl/ps3_network/pcsl_network.c $(ROOT)/tests/network_transport_test.c `sdl-config --libs` -Wl,--wrap=poll -Wl,--wrap=connect -o $(BUILD)/network_transport_test
 	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/network_transport_test

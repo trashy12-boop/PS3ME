@@ -6,11 +6,32 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <poll.h>
 #include <pcsl_network.h>
 #include <pcsl_socket.h>
 #include <pcsl_datagram.h>
 #include <pcsl_serversocket.h>
 extern void ps3me_network_poll(void);
+#ifdef PS3ME_NETWORK_TEST
+static uint64_t clock_offset;
+static int hold_connect;
+uint64_t ps3me_network_test_time_ms(void) {
+    struct timespec t; clock_gettime(CLOCK_MONOTONIC,&t);
+    return (uint64_t)t.tv_sec*1000+t.tv_nsec/1000000+clock_offset;
+}
+int __real_poll(struct pollfd*,nfds_t,int);
+int __wrap_poll(struct pollfd *fds,nfds_t n,int timeout) {
+    return hold_connect?0:__real_poll(fds,n,timeout);
+}
+int __real_connect(int,const struct sockaddr*,socklen_t);
+int __wrap_connect(int fd,const struct sockaddr *a,socklen_t n) {
+    int r=__real_connect(fd,a,n);
+    if(hold_connect) { errno=EINPROGRESS; return -1; }
+    return r;
+}
+#endif
 static int events[3], last_handle[3], last_status[3], reject;
 int ps3me_network_signal(int h,int kind,int status) {
     if(reject) return 0;
@@ -96,6 +117,29 @@ int main(int argc,char**argv) {
     /* Repeated sessions must neither leak descriptors nor recycle MIDP IDs. */
     for(i=0;i<100;i++) { pair(&a,&b); assert(pcsl_network_finalize_start(NULL)==0); assert(pcsl_socket_read_finish(a,buf,1,&n,NULL)==PCSL_NET_INTERRUPTED); }
     puts("PASS 100 sessions and teardown");
+#ifdef PS3ME_NETWORK_TEST
+    /* A blackholed connect must wake its Java waiter, even with a full queue.
+     * Only OS readiness and elapsed time are controlled; the real socket and
+     * production PCSL start/poll/finish lifecycle are exercised. */
+    {
+        void *listener; unsigned char loop[]={127,0,0,1}; int before;
+        assert(pcsl_serversocket_open(0,&listener)==0);
+        assert(pcsl_network_getlocalport(listener,&port)==0);
+        hold_connect=1;
+        assert(pcsl_socket_open_start(loop,port,&a,&ctx)==PCSL_NET_WOULDBLOCK);
+        assert(pcsl_socket_open_finish(a,NULL)==PCSL_NET_WOULDBLOCK);
+        before=events[1]; reject=1; clock_offset+=15001;
+        tick(); assert(events[1]==before); reject=0;
+        wait_for(2,(int)(intptr_t)a);
+        assert(last_status[1]==PCSL_NET_IOERROR);
+        assert(pcsl_socket_open_finish(a,NULL)==PCSL_NET_IOERROR);
+        assert(pcsl_network_error(a)==ETIMEDOUT);
+        hold_connect=0; close_socket(listener);
+        /* Opening a new connection still succeeds after the failed one. */
+        pair(&a,&b); close_socket(a); close_socket(b);
+        puts("PASS stalled-connect timeout, queued wakeup and recovery");
+    }
+#endif
     /* Optional read-only check of the exact Discord 5.3.1 default endpoints. */
     if(argc>1 && !strcmp(argv[1],"--discord")) {
         unsigned char proxy[]={146,59,80,3}; int total=0;
