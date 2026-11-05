@@ -108,3 +108,31 @@ record request payloads, authorization headers, tokens or QR contents. These
 changes address the unbounded-connect behavior, but the console's underlying
 connectivity issue remains unconfirmed without its runtime log. No successful
 QR retrieval or Discord account login is claimed for this follow-up build.
+
+## 01.25: console report before the TCP attempt
+
+The supplied console log ends with libnet initialization success and interface
+state 3 (IP obtained), without a TCP connect-start line. That narrows the stall
+to initialization or the Java path before opening the socket; it does not prove
+that the remote gateway is unreachable. The loader's earlier security-context
+trace precedes successful suite startup and is not sufficient to blame login.
+
+01.25 removes eager SDL DNS mutex creation from network initialization and
+numeric-IP lookup. DNS synchronization is created only for hostname requests.
+The real-socket regression suite now verifies that initialization and numeric
+lookup perform no DNS mutex allocation.
+
+The Java permission adapter resolves only interactive network levels (HTTP,
+HTTPS, socket, server socket, SSL, UDP and UDP receiver) for the session when
+allowed by the suite's maximum permission level. Explicit session/persistent
+or policy denials are preserved, as are all unrelated permissions. This avoids
+waiting for a phone-style preempting permission dialog in this console launcher.
+A compiled Java regression test covers these grants and preserved denials.
+Socket permission and native initialization/resolution now log their stages,
+without logging request contents or credentials.
+
+The modified runtime was CLDC-preverified, all 99 supplied Discord classes were
+rechecked against it, the PPU application was rebuilt, and the finalized PKG
+passed payload/CRC checks with the owner's corrected XMB icon. Real console
+confirmation of QR retrieval/login remains pending; this is a targeted change
+based on the pre-connect log, not a claim of successful Discord authentication.

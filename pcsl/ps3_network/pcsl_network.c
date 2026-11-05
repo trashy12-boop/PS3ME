@@ -129,9 +129,11 @@ int pcsl_network_init_start(PCSL_NET_CALLBACK cb) {
       if(r==0 || (unsigned int)r==NET_CTL_ERROR_NOT_TERMINATED) netCtlGetState(&state);
       fprintf(stderr,"[PS3ME net] interface init=%d state=%d (3=IP obtained)\n",r,state); }
 #endif
-    dns_lock=SDL_CreateMutex();
-    if(!dns_lock) return PCSL_NET_IOERROR;
-    initialized=1; return PCSL_NET_SUCCESS;
+    /* Numeric endpoints need no DNS synchronization objects. Do not create
+     * SDL semaphores in the VM's network class initializer. */
+    initialized=1;
+    fprintf(stderr,"[PS3ME net] transport initialization complete\n");
+    return PCSL_NET_SUCCESS;
 }
 int pcsl_network_init(void) { return pcsl_network_init_start(NULL); }
 int pcsl_network_init_finish(void) { return PCSL_NET_SUCCESS; }
@@ -180,8 +182,11 @@ int pcsl_network_gethostbyname_start(char *name,unsigned char *out,int max,int *
     int i; struct in_addr ip;
     if(!name || !out || max<4 || !len || !h || !ctx || strlen(name)>=256) return PCSL_NET_INVALID;
     *h=NULL; *ctx=NULL;
+    fprintf(stderr,"[PS3ME net] address resolution starting\n");
     if(pcsl_network_init()!=0) return PCSL_NET_IOERROR;
-    if(inet_pton(AF_INET,name,&ip)==1) { memcpy(out,&ip,4); *len=4; return PCSL_NET_SUCCESS; }
+    if(inet_pton(AF_INET,name,&ip)==1) { memcpy(out,&ip,4); *len=4; fprintf(stderr,"[PS3ME net] numeric IPv4 resolved\n"); return PCSL_NET_SUCCESS; }
+    if(!dns_lock) dns_lock=SDL_CreateMutex();
+    if(!dns_lock) return PCSL_NET_IOERROR;
     if(!ps3me_dns_resolver_lock) ps3me_dns_resolver_lock=SDL_CreateMutex();
     if(!ps3me_dns_resolver_lock) return PCSL_NET_IOERROR;
     SDL_LockMutex(dns_lock);
@@ -242,6 +247,7 @@ void ps3me_network_poll(void) {
         if((s->wait&WRITE_WAIT) && (r&(POLLOUT|POLLERR|POLLHUP|POLLNVAL)))
             if(ps3me_network_signal(s->id,WRITE_WAIT,0)) s->wait&=~WRITE_WAIT;
     }
+    if(!dns_lock) return;
     SDL_LockMutex(dns_lock);
     for(i=0;i<DNS_JOBS;i++) {
         Lookup *j=&lookups[i];

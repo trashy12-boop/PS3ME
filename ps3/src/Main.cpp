@@ -280,7 +280,7 @@ int main(int argc,char** argv) {
     ::freopen((std::string(home)+"/logs/runtime.log").c_str(),"ab",stderr);
     ::setvbuf(stdout,0,_IOLBF,0);
     ::setvbuf(stderr,0,_IOLBF,0);
-    ::fprintf(stderr,"[PS3ME boot] build 01.24: initializing SDL video (audio deferred)\n");
+    ::fprintf(stderr,"[PS3ME boot] build 01.25: initializing SDL video (audio deferred)\n");
     if(SDL_Init(SDL_INIT_VIDEO)!=0){::fprintf(stderr,"[PS3ME boot] SDL_Init: %s\n",SDL_GetError());return 1;}
     ::fprintf(stderr,"[PS3ME boot] SDL video subsystem ready\n");
     ps3me::installPlatform(storage,video,controller,clock,heap,log);

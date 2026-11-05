@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <poll.h>
+#include <SDL_mutex.h>
 #include <pcsl_network.h>
 #include <pcsl_socket.h>
 #include <pcsl_datagram.h>
@@ -16,6 +17,11 @@
 extern void ps3me_network_poll(void);
 #ifdef PS3ME_NETWORK_TEST
 static uint64_t clock_offset;
+static int mutex_creations;
+SDL_mutex *__real_SDL_CreateMutex(void);
+SDL_mutex *__wrap_SDL_CreateMutex(void) {
+    ++mutex_creations; return __real_SDL_CreateMutex();
+}
 static int hold_connect;
 uint64_t ps3me_network_test_time_ms(void) {
     struct timespec t; clock_gettime(CLOCK_MONOTONIC,&t);
@@ -66,6 +72,10 @@ int main(int argc,char**argv) {
     void *a,*b,*ctx,*dns; int n,port,r,i,v; unsigned char ip[4],buf[65536]; char text[256];
     assert(pcsl_network_init()==0);
     assert(pcsl_network_gethostbyname_start("127.0.0.1",ip,4,&n,&dns,&ctx)==0 && n==4 && ip[0]==127);
+#ifdef PS3ME_NETWORK_TEST
+    assert(mutex_creations==0);
+    puts("PASS network initialization and numeric IP resolution allocate no DNS mutex");
+#endif
     assert(pcsl_network_gethostbyname_start("localhost",ip,4,&n,&dns,&ctx)==PCSL_NET_WOULDBLOCK);
     wait_for(3,(int)(intptr_t)dns);
     assert(pcsl_network_gethostbyname_finish(ip,4,&n,dns,ctx)==0 && n==4 && ip[0]==127);

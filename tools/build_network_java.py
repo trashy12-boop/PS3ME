@@ -13,6 +13,9 @@ def main():
     raw.mkdir(parents=True,exist_ok=True);verified.mkdir(parents=True,exist_ok=True)
     library=ROOT/'build/midp_ppu/classes.zip'
     sources=[src/'midp/src/protocol/http/reference/classes/com/sun/midp/io/j2me/http/Protocol.java']
+    sources+=[src/'midp/src/security/permission_dialog/reference/classes/com/sun/midp/security/SecurityHandler.java',
+              src/'midp/src/protocol/socket/reference/classes/com/sun/midp/io/j2me/socket/Protocol.java']
+    sources+=sorted((ROOT/'ps3/java/com/ps3me/net').glob('*.java'))
     sources+=sorted((ROOT/'ps3/java/javax/microedition/io/file').glob('*.java'))
     sources+=[ROOT/'ps3/java/com/nokia/mid/ui/SoftNotification.java']
     subprocess.run([str(a.jdk/'bin/javac'),'-source','1.4','-target','1.4','-bootclasspath',str(library),'-d',str(raw),*[str(s) for s in sources]],check=True)

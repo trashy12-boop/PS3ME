@@ -141,7 +141,7 @@ void drawChrome(SDL_Surface* t,const std::string& path,const std::vector<std::st
     if(background)SDL_BlitSurface(background,0,t,0);else SDL_FillRect(t,0,0);
     text(t,76,38,"PS3ME",big,400);
     text(t,255,48,ps3me::tr("Jogos","Games"),normal,280);
-    text(t,990,48,"01.24 / J2ME",small,245);
+    text(t,990,48,"01.25 / J2ME",small,245);
     text(t,80,108,path,small,1120);
     hlineRGBA(t,80,1198,142,210,235,255,40);
     if(names.empty())text(t,92,302,ps3me::tr("Nenhum jogo aqui. SELECT: atualizar","No games here. SELECT: refresh"),normal,970);
