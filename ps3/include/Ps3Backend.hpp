@@ -26,7 +26,7 @@ private:
     SDL_Surface *screen_,*converted_;
     int width_,height_;
     bool haveFrame_;int paintedX_,paintedY_;bool paintedDown_;uint64_t lastFlip_;
-    void blitCursor();
+    void blitCursor(bool force);
 };
 class Controller : public ps2::hal::IPad {
 public:

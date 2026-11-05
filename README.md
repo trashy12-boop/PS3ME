@@ -66,6 +66,14 @@ Up/Down selects an option. Left/Right or X adjusts values. Configure resolution 
 
 For landscape games choose 320×240, not 240×320. Some JARs require their own landscape edition.
 
+## Network support in the 01.24 development build
+
+The network branch adds HTTP, TCP sockets, UDP and asynchronous DNS using the
+PS3 connection configured in system settings (Wi-Fi or Ethernet). See the
+[network implementation and validation notes](docs/NETWORK_01.24.md).
+Discord J2ME 5.3.1 passes class verification; login and messaging still require
+runtime validation. The latest published release remains 1.23.
+
 ## Saves and configuration
 
 Base folder: `/dev_hdd0/game/PS3ME0001/USRDIR/`

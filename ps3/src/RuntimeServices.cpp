@@ -7,6 +7,7 @@
 #include "hal/IPollHook.hpp"
 #include <sys/systime.h>
 extern "C" void ps3me_service_app() __attribute__((weak));
+extern "C" void ps3me_network_poll();
 namespace ps3me {
 static CooperativeTimers timers;
 static bool installed=false;
@@ -14,6 +15,7 @@ class PollServices: public ps2::hal::IPollHook {
 public:
     void onPoll() {
         if(ps3me_service_app)ps3me_service_app();
+        ps3me_network_poll();
         timers.poll(sysGetSystemTime()/1000);
         pollInput(sysGetSystemTime()/1000);
     }

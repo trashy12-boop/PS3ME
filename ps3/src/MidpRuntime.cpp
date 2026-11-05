@@ -10,6 +10,7 @@ extern "C" {
 #include <pcsl_string.h>
 #include <javacall_properties.h>
 void ps3me_audio_register_natives();
+int pcsl_network_finalize_start(void*);
 void ps3me_audio_shutdown();
 void ps3me_archive_reset();
 void ps3me_set_runtime_paths(const char*,const char*);
@@ -37,6 +38,7 @@ extern "C" int ps3me_run_game(const char* fileUrl,const char* appDirectory,const
     int result=midp_run_midlet_with_args_cp(INTERNAL_SUITE_ID,&mainClass,&arg,&PCSL_STRING_NULL,&PCSL_STRING_NULL,0,const_cast<char*>(classLibrary));
     pcsl_string_free(&mainClass);pcsl_string_free(&arg);
     ps3me_audio_shutdown();
+    pcsl_network_finalize_start(NULL);
     midpFinalize();
     ps3me_archive_reset();
     std::fprintf(stderr,"[PS3ME MIDP] session finalized\n");

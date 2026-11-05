@@ -45,7 +45,8 @@ def main():
         for kind in ('_policy.txt','_function_groups.txt'):
             for f in config.glob(kind+'.*'):shutil.copy2(f,stage/'USRDIR/lib'/f.name)
             shutil.copy2(config/(kind+'.JTWI'),stage/'USRDIR/lib'/kind)
-        for name in ('README_PS3.md','COPYING_PHONE_ME.txt'):shutil.copy2(ROOT/name,stage/'USRDIR'/name)
+        shutil.copy2(ROOT/'README.md',stage/'USRDIR/README_PS3.md')
+        shutil.copy2(ROOT/'COPYING_PHONE_ME.txt',stage/'USRDIR/COPYING_PHONE_ME.txt')
         shutil.rmtree(stage/'USRDIR/timidity',ignore_errors=True)
         (stage/'USRDIR/timidity.cfg').unlink(missing_ok=True)
         shutil.copytree(ROOT/'assets/audio/soundfont',stage/'USRDIR/soundfont',dirs_exist_ok=True)
