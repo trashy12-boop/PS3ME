@@ -1,0 +1,47 @@
+name: Keep PS3ME main branch only
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/prune-branches.yml
+permissions:
+  contents: write
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Delete the inspected non-main branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r branch expected; do
+            test -n "$branch" || continue
+            ref="refs/heads/$branch"
+            actual=$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq '.object.sha')
+            if [ "$actual" != "$expected" ]; then
+              echo "Refusing to delete $branch: its head changed (expected $expected, found $actual)" >&2
+              exit 1
+            fi
+            echo "Deleting $branch at $actual"
+            gh api --method DELETE "repos/$GH_REPO/git/refs/heads/$branch"
+          done <<'BRANCHES'
+          codex/j2me-network-01.24 7595cfa5fa79bf2a25b8824da5213a906416a06c
+          codex/ps3me-0116-compatibility d0809a5317e1fe2d31abb9ea5d08c0ec76b10c6d
+          feature/salsa64-ui-language ff5a01ad6f89d030e05b7df64924b72685e8a6df
+          performance/loading-01.15 c8bca9409cc3f3fc7fec0d7e58bcda3de2929f6d
+          BRANCHES
+      - name: Remove the one-time cleanup workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow_sha=$(git rev-parse HEAD:.github/workflows/prune-branches.yml)
+          gh api --method DELETE "repos/$GH_REPO/contents/.github/workflows/prune-branches.yml" \
+            -f message='Remove one-time branch cleanup workflow' \
+            -f sha="$workflow_sha" \
+            -f branch=main
