@@ -11,6 +11,6 @@ These documents describe previous releases and are retained for reference:
 - [v1.06 guide](archive/README_PS3_01.06.md)
 - [v1.07 guide](archive/README_PS3_01.07.md)
 
-Version-specific release notes are available in the repository root as `RELEASE_NOTES_*.md`. See [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases) for published versions.
+See the [version and source map](VERSION_GUIDE.md) for tag purposes, validation notes, and the source tree layout. Version-specific release notes are available in the repository root as `RELEASE_NOTES_*.md`. See [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases) for published versions.
 
 Historical guides should not be treated as documentation for the latest published release.
