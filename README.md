@@ -96,4 +96,4 @@ Source, build scripts and dependency pins are included here. Release source ZIPs
 
 ## Versions and tags
 
-Tags identify a **specific code snapshot**. Versions use `v1.14`, `v1.15`, `v1.16`, and so on. Experimental/Alpha belongs in the release title and pre-release status. Current build: **01.23**. For downloads, check [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases). See [documentation index](docs/README.md), [v1.19 release notes](RELEASE_NOTES_01.19.md), and [v1.16 release notes](RELEASE_NOTES_01.16.md).
+Tags identify a **specific code snapshot**; the source tree is organized by subsystem, not duplicated into version folders. Current release: **01.23**, tagged `V01.23`. For what each tag contains and where its code lives, see the [version and source map](docs/VERSION_GUIDE.md). For downloads, check [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases). See [documentation index](docs/README.md), [v1.19 release notes](RELEASE_NOTES_01.19.md), and [v1.16 release notes](RELEASE_NOTES_01.16.md).
