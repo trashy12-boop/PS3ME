@@ -1,73 +1,64 @@
-# Version and source organization guide
+# PS3ME versions, tags and source map
 
-This document explains how to navigate PS3ME's historical releases without rewriting the code snapshots stored in Git tags.
+This guide maps every tag currently published in this repository to the code snapshot and explains where the main parts of that code live.
 
-## What a tag means
+## How to use a tag
 
-A Git tag points to a particular commit (or to an annotated tag object). It is **not** a separate working directory or a mutable branch. Files displayed under a tag are the exact contents of that historical snapshot. Reorganizing those files would require new commits and would no longer be the original release snapshot.
+A tag is a fixed snapshot of a commit. Checking out a tag shows the files exactly as they were at that point. The source tree is already grouped by subsystem in the complete code snapshots; preserve that layout when browsing older tags so build scripts and relative paths continue to match the release.
 
-For this reason, keep historical tags unchanged and organize documentation on `main`. Use release notes to explain what each snapshot introduced.
+Use `git switch --detach <tag>` to inspect one version. Return to current development with `git switch main`. Read that snapshot's `README.md` and `RELEASE_NOTES_*.md` before building or comparing it.
 
-## Documented release milestones
+## Published tags
 
-| Version | Purpose / documented changes | Evidence |
-| --- | --- | --- |
-| 01.05–01.07 | Earlier PS3-specific guides; historical behavior may differ from current releases | `docs/archive/README_PS3_01.05.md`, `README_PS3_01.06.md`, `README_PS3_01.07.md` |
-| 01.16 | Nokia API packaging, Nokia Sound, MMAPI tone support, graphics compatibility fixes, and Bounce Tales validation | `RELEASE_NOTES_01.16.md`, `docs/COMPATIBILITY_AUDIT_01.16.md` |
-| 01.17–01.19 | Game browser UI changes, English/Brazilian Portuguese selection, loading screen, XMB icon updates and redraw optimizations; real PS3 menu freeze and PS-button crash reported in those builds | `RELEASE_NOTES_01.19.md` |
-| 01.23 | Current version identified by the main README; earlier v1.19 regressions were subsequently reported fixed | `README.md` |
+| Tag | Commit | What it represents | Testing notes |
+| --- | --- | --- | --- |
+| `Alpha` | `2f2e9d0` | Early 01.14 source-import/bootstrap snapshot. It adds the source importer workflow and 01.14 release notes; treat it as an import milestone, not a numbered release. | Its README says 01.14 was not verified on PS3 hardware. |
+| `V01.14` | `a9aefb9` | 01.14 MP3 stack repair: move decoding off SDL's small audio callback stack and use bounded prepared PCM. | Host and compiler checks are documented; that build was not independently verified on-console. |
+| `V01.16` | `70a75ec` | Nokia UI/audio API packaging and compatibility restoration, graphics alignment fix, and Bounce Tales improvements. | Release notes and the 01.16 compatibility audit describe host, RPCS3 and reported hardware results; this is not a universal compatibility claim. |
+| `V0.23` | `0c2d742` | The code and release notes identify this as **01.23**, including the XMB display-heartbeat and flip-synchronization work. The tag name is a typo/ambiguous version label. | Its release notes say physical PS3 verification was pending and RPCS3 was not run for that build. |
 
-**Caution:** The table documents milestones from available project notes; it is not a verified inventory of all existing Git tags. Avoid inferring missing version features from tag names alone.
+The current `main` branch contains later development than the numbered tags; its recent commits include 01.25 networking work. A branch head is not a released or tested version unless a release/tag and evidence say so.
 
-## Source layout: how to navigate
+### Correcting the 01.23 tag name
 
-- `README.md` — current installation instructions, controls, save paths, credits and warnings.
-- `docs/README.md` — documentation entry point and historical guides.
-- `docs/archive/` — archived guides tied to older versions; do not use as instructions for current builds.
-- `RELEASE_NOTES_*.md` — version-specific changes, limitations and test results.
-- `docs/COMPATIBILITY_AUDIT_01.16.md` — 01.16 compatibility testing and supporting evidence.
-- `docs/THIRD_PARTY_NOTICES.md` — third-party attribution and licensing.
-- `docs/AI_DISCLOSURE.md` — AI-assisted development disclosure.
-- `.gitignore` — generated build products, local caches and other untracked files.
+The canonical spelling should be `V01.23`, matching the existing `V01.14` and `V01.16` tags. The corrected name must point to the same commit as `V0.23`. Keep the old tag until any GitHub Release association and external links have been checked; deleting it can break those links.
 
-## Recommended future layout
-
-For new code on `main`, gradually group PS3 platform glue, Java ME runtime integration, UI, input, audio, build tooling, tests, and documentation into clearly named directories **only after identifying actual dependencies and verifying builds**. Do not move files speculatively: PS3 toolchains and scripts may depend on relative paths.
-
-For each future release, publish:
-1. A tag pointing to the tested commit.
-2. Release notes describing changes, test environment, and known issues.
-3. A PKG artifact if available, with its provenance.
-4. Any compatibility regressions and whether they were reproduced on physical hardware.
-
-## Renaming a tag
-
-To rename `v0.23` to `v01.23` **without changing its target commit**, first inspect both names and confirm `v01.23` does not already exist:
+After confirming `V01.23` is not already present, a maintainer can add the corrected name without rewriting code:
 
 ```bash
 git fetch origin --tags
-git show-ref --tags | grep -E 'refs/tags/v(0\.23|01\.23)$'
+git show-ref --tags | grep -E 'refs/tags/V(0\\.23|01\\.23)$'
+git tag V01.23 V0.23
+git push origin refs/tags/V01.23
+git rev-parse 'V0.23^{}'
+git rev-parse 'V01.23^{}'
 ```
 
-If `v01.23` does not exist, create it from the old tag and push it:
+The two final commit IDs must match. Only remove `V0.23` after confirming no release or external link depends on it.
 
-```bash
-git tag v01.23 v0.23
-git push origin refs/tags/v01.23
-```
+## Source code map
 
-Verify the peeled commit IDs match:
+These paths are used in the full source snapshots. The exact files can differ by version; a subsystem may not exist yet in older tags.
 
-```bash
-git rev-parse 'v0.23^{}'
-git rev-parse 'v01.23^{}'
-```
+| Path | Purpose |
+| --- | --- |
+| `ps3/src/` | Native PS3 application: browser/menu, controls, rendering, audio, storage, runtime integration and PS3 platform backend. |
+| `ps3/include/` | Interfaces and shared declarations for the native PS3 application. |
+| `ps3/java/` | Java classes and compatibility APIs packaged into the Java ME runtime. |
+| `ps3/Makefile`, `ps3/javacall.mk`, `ps3/sfo.xml` | PS3 build configuration and application metadata. |
+| `midp/` | phoneME MIDP runtime and PS3-specific build integration. |
+| `pcsl/` | phoneME portability and system abstraction layer. |
+| `vm/` | Java virtual machine and PS3/Cell adaptations. |
+| `upstream/`, `vendor/`, `third_party/` | Imported upstream sources and dependencies; retain their notices and version pins. |
+| `tools/` | Dependency preparation, patching, building, packaging and validation scripts. |
+| `tests/`, `ps3/tests/` | Host-side regressions, compatibility checks and developer replay tests. |
+| `assets/`, `patches/` | Project assets and maintained source patches. |
+| `docs/`, `RELEASE_NOTES_*.md` | Guides, provenance, test evidence, known issues and version-specific changes. |
 
-Only after verifying the new tag and checking whether GitHub Releases or external links reference the old name, delete the old remote tag:
+## What is safe to reorganize
 
-```bash
-git push origin :refs/tags/v0.23
-git tag -d v0.23
-```
+Make new structural refactors on `main`, update build scripts and tests with the move, and publish a new tag only after validating the resulting build. Keep existing tags fixed so users can still reproduce the exact historical snapshots. For a clearer version list, update this guide and each release's notes rather than changing old tagged trees.
 
-If `v0.23` is annotated, `git tag v01.23 v0.23` creates a new lightweight tag to the original tag's peeled target; use an annotated replacement if preserving tag-message semantics matters. GitHub Releases may need their tag association updated separately. Do not delete a release asset or rewrite an existing `v01.23` tag.
+## Release checklist
+
+For each future release, publish a tag pointing to the tested commit, release notes with the actual test environment and known issues, and the PKG/source artifacts with their provenance. State clearly whether results came from host tests, RPCS3 or a physical PS3.
