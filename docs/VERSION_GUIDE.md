@@ -27,7 +27,42 @@ After confirming `V01.23` is not already present, a maintainer can add the corre
 
 ```bash
 git fetch origin --tags
-git show-ref --tags | grep -E 'refs/tags/V(0\\.23|01\\.23)$'
+git show-ref --tags | grep -E 'refs/tags/V(0[.]23|01[.]23)
+git tag V01.23 V0.23
+git push origin refs/tags/V01.23
+git rev-parse 'V0.23^{}'
+git rev-parse 'V01.23^{}'
+```
+
+The two final commit IDs must match. Only remove `V0.23` after confirming no release or external link depends on it.
+
+## Source code map
+
+These paths are used in the full source snapshots. The exact files can differ by version; a subsystem may not exist yet in older tags.
+
+| Path | Purpose |
+| --- | --- |
+| `ps3/src/` | Native PS3 application: browser/menu, controls, rendering, audio, storage, runtime integration and PS3 platform backend. |
+| `ps3/include/` | Interfaces and shared declarations for the native PS3 application. |
+| `ps3/java/` | Java classes and compatibility APIs packaged into the Java ME runtime. |
+| `ps3/Makefile`, `ps3/javacall.mk`, `ps3/sfo.xml` | PS3 build configuration and application metadata. |
+| `midp/` | phoneME MIDP runtime and PS3-specific build integration. |
+| `pcsl/` | phoneME portability and system abstraction layer. |
+| `vm/` | Java virtual machine and PS3/Cell adaptations. |
+| `upstream/`, `vendor/`, `third_party/` | Imported upstream sources and dependencies; retain their notices and version pins. |
+| `tools/` | Dependency preparation, patching, building, packaging and validation scripts. |
+| `tests/`, `ps3/tests/` | Host-side regressions, compatibility checks and developer replay tests. |
+| `assets/`, `patches/` | Project assets and maintained source patches. |
+| `docs/`, `RELEASE_NOTES_*.md` | Guides, provenance, test evidence, known issues and version-specific changes. |
+
+## What is safe to reorganize
+
+Make new structural refactors on `main`, update build scripts and tests with the move, and publish a new tag only after validating the resulting build. Keep existing tags fixed so users can still reproduce the exact historical snapshots. For a clearer version list, update this guide and each release's notes rather than changing old tagged trees.
+
+## Release checklist
+
+For each future release, publish a tag pointing to the tested commit, release notes with the actual test environment and known issues, and the PKG/source artifacts with their provenance. State clearly whether results came from host tests, RPCS3 or a physical PS3.
+
 git tag V01.23 V0.23
 git push origin refs/tags/V01.23
 git rev-parse 'V0.23^{}'
