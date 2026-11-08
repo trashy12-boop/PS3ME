@@ -1,4 +1,4 @@
-name: Rename PS3ME release tag to v1.14
+name: Rename PS3ME 01.23 release tag
 on:
   push:
     paths:
@@ -13,17 +13,33 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - name: Preserve release and assets while switching the tag
+      - name: Rename V0.23 to V01.23 and preserve release assets
         shell: bash
         run: |
           set -euo pipefail
-          release_id=427398754
-          old_ref=$(gh api "repos/$GH_REPO/git/ref/tags/Alpha" --jq '.object.sha')
-          if ! gh api "repos/$GH_REPO/git/ref/tags/v1.14" >/dev/null 2>&1; then
-            gh api --method POST "repos/$GH_REPO/git/refs" -f ref="refs/tags/v1.14" -f sha="$old_ref"
+          old_tag='V0.23'
+          new_tag='V01.23'
+          release_id=430376388
+
+          old_sha=$(gh api "repos/$GH_REPO/git/ref/tags/$old_tag" --jq '.object.sha')
+          if gh api "repos/$GH_REPO/git/ref/tags/$new_tag" >/dev/null 2>&1; then
+            new_sha=$(gh api "repos/$GH_REPO/git/ref/tags/$new_tag" --jq '.object.sha')
+            test "$new_sha" = "$old_sha" || {
+              echo "Refusing to replace $new_tag: it points to a different commit" >&2
+              exit 1
+            }
+          else
+            gh api --method POST "repos/$GH_REPO/git/refs" \
+              -f ref="refs/tags/$new_tag" -f sha="$old_sha"
           fi
-          gh api --method PATCH "repos/$GH_REPO/releases/$release_id" -f tag_name='v1.14' -f name='PS3ME v1.14 - Experimental Alpha' -F prerelease=true
+
+          gh api --method PATCH "repos/$GH_REPO/releases/$release_id" \
+            -f tag_name="$new_tag" \
+            -f name='PS3ME v1.23 - XMB display heartbeat'
+
           actual=$(gh api "repos/$GH_REPO/releases/$release_id" --jq '.tag_name')
-          test "$actual" = 'v1.14'
-          gh api --method DELETE "repos/$GH_REPO/git/refs/tags/Alpha"
-          gh api "repos/$GH_REPO/releases/$release_id" --jq '{tag_name,html_url,prerelease,assets:[.assets[].name]}'
+          test "$actual" = "$new_tag"
+
+          gh api --method DELETE "repos/$GH_REPO/git/refs/tags/$old_tag"
+          gh api "repos/$GH_REPO/releases/$release_id" \
+            --jq '{tag_name,name,html_url,assets:[.assets[].name]}'
