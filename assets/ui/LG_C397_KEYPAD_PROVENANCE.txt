@@ -1,0 +1,5 @@
+The keypad crop in lg_c397_keypad.png was cut from the LG C397 reference image
+provided by the PS3ME project owner for the controller-editor design. The crop
+preserves the phone photo, removes the connected white page background, and
+contains no button-selection tint. PS3ME draws the blue key highlight at
+runtime.

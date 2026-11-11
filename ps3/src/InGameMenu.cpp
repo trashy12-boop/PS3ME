@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include "GameSettings.hpp"
+#include "ControlMenu.hpp"
 #include "MenuLanguage.hpp"
 #include "LocalizedControls.hpp"
 #include "MenuPrompt.hpp"
@@ -65,9 +66,13 @@ int showInGameMenu(bool automated){
   }
   if((b.circle&&!previous.circle)||(b.start&&!previous.start))done=true;
   for(int y=0;y<720;y++)hlineRGBA(surface,0,1279,y,23+y*17/720,64-y*45/720,91-y*26/720,255);
-  text(surface,title,80,44,tr("PS3ME / Configurações do jogo","PS3ME / In-game settings"));text(surface,font,80,106,tr("L3 + R3   /   Configurações deste jogo","L3 + R3   /   Settings for this game"));int first=row>3?row-3:0;
+  text(surface,title,58,34,tr("PS3ME / Configurações do jogo","PS3ME / In-game settings"));text(surface,font,58,89,tr("L3 + R3   /   Configurações deste jogo","L3 + R3   /   Settings for this game"));
+  const int selectedAction=(row>=5&&row<5+BUTTON_COUNT)?controlConfig().map[row-5]:NONE;
+  drawControlDiagram(surface,48,146,470,396,selectedAction);
+  text(surface,font,72,553,tr("Ação J2ME em azul","J2ME action highlighted in blue"));
+  int first=row>3?row-3:0;
   for(int i=first;i<BUTTON_COUNT+8&&i<first+8;i++){int y=176+(i-first)*46;std::string label;char value[180];
- if(i==0){::snprintf(value,sizeof(value),tr("Resolução do jogo: %d x %d","Game resolution: %d x %d"),w,h);label=value;}else if(i==1)label=tr("Salvar configurações deste jogo","Save settings for this game");else if(i==2)label=tr("Usar configurações globais","Use global defaults");else if(i==3)label=tr("Voltar ao jogo","Resume game");else if(i==4)label=tr("Voltar à biblioteca","Return to game library");else if(i<5+BUTTON_COUNT){::snprintf(value,sizeof(value),"%-12s   %s",localizedButton(i-5),localizedAction(controlConfig().map[i-5]));label=value;}else if(i==5+BUTTON_COUNT)label=std::string(tr("Cursor de toque: ","Touchscreen cursor: "))+(controlConfig().pointer?tr("Ativado","Enabled"):tr("Desativado","Disabled"));else{::snprintf(value,sizeof(value),"%s: %d",i==6+BUTTON_COUNT?tr("Velocidade do cursor","Cursor speed"):tr("Zona morta","Stick deadzone"),i==6+BUTTON_COUNT?controlConfig().speed:controlConfig().deadzone);label=value;}if(i==row)boxRGBA(surface,70,y-5,1200,y+35,220,235,255,24);text(surface,font,90,y,label);}
+ if(i==0){::snprintf(value,sizeof(value),tr("Resolução do jogo: %d x %d","Game resolution: %d x %d"),w,h);label=value;}else if(i==1)label=tr("Salvar configurações deste jogo","Save settings for this game");else if(i==2)label=tr("Usar configurações globais","Use global defaults");else if(i==3)label=tr("Voltar ao jogo","Resume game");else if(i==4)label=tr("Voltar à biblioteca","Return to game library");else if(i<5+BUTTON_COUNT){::snprintf(value,sizeof(value),"%-12s   %s",localizedButton(i-5),localizedAction(controlConfig().map[i-5]));label=value;}else if(i==5+BUTTON_COUNT)label=std::string(tr("Cursor de toque: ","Touchscreen cursor: "))+(controlConfig().pointer?tr("Ativado","Enabled"):tr("Desativado","Disabled"));else{::snprintf(value,sizeof(value),"%s: %d",i==6+BUTTON_COUNT?tr("Velocidade do cursor","Cursor speed"):tr("Zona morta","Stick deadzone"),i==6+BUTTON_COUNT?controlConfig().speed:controlConfig().deadzone);label=value;}if(i==row)roundedBoxRGBA(surface,548,y-5,1225,y+35,6,36,79,125,245);text(surface,font,570,y,label);}
   text(surface,font,80,586,message);text(surface,font,80,640,tr("Cima/Baixo: selecionar   Direita/Esquerda ou X: alterar   O: voltar","Up/Down: select   Left/Right or X: change   Circle: resume"));text(surface,font,80,681,tr("Alguns jogos precisam reiniciar após mudar a resolução.","Some games need a restart to adapt their own graphics to a new size."));SDL_SoftStretch(surface,0,screen,0);SDL_Flip(screen);previous=b;sysUsleep(16000);
   if(automated&&frames==25)SDL_SaveBMP(surface,"/dev_hdd0/game/PS3ME0001/USRDIR/logs/ingame_menu.bmp");
  }

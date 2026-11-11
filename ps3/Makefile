@@ -13,7 +13,7 @@ JC := $(PHONEME_SRC)/javacall/interface
 INC := -Iinclude -I$(HAL) -I$(HAL)/include -I$(JC) -I$(JC)/common -I$(JC)/midp
 CPPFLAGS := $(INC) -DPS3ME_PPU -I$(PS3DEV)/ppu/include -I$(PS3DEV)/portlibs/ppu/include/SDL
 CXXFLAGS := -MMD -MP -std=gnu++11 -O2 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -ffunction-sections -fdata-sections
-BACKENDS := Storage Video Ps3Backend CooperativeTimers RuntimeServices Controls InputRuntime ControlMenu GameSettings InGameMenu
+BACKENDS := Storage Video Ps3Backend CooperativeTimers RuntimeServices Controls InputRuntime ControlMenu GameSettings InGameMenu Favorites
 HAL_NAMES := GameStorage LcdDevice Keypad EventQueue SystemClock MemoryManager Logger TimerService
 OBJS := $(addprefix $(BUILD)/,$(addsuffix .o,$(BACKENDS))) $(addprefix $(BUILD)/hal_,$(addsuffix .o,$(HAL_NAMES)))
 .PHONY: all platform test-host test-vm-pointer-math native-link-check abi-audit vm-preflight clean
@@ -30,6 +30,11 @@ $(BUILD)/libps3me_platform.a: $(OBJS)
 test-host: | $(BUILD)
 	$(CXX) $(INC) -std=c++11 -Wall -Wextra -Werror -O1 -g -fsanitize=address,undefined src/Storage.cpp src/Video.cpp tests/platform_test.cpp -o $(BUILD)/platform_test
 	$(BUILD)/platform_test
+
+.PHONY: test-favorites
+test-favorites: | $(BUILD)
+	$(CXX) -Iinclude -std=c++11 -Wall -Wextra -Werror -O1 -g -fsanitize=address,undefined src/Favorites.cpp tests/favorites_test.cpp -o $(BUILD)/favorites_test
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/favorites_test
 test-vm-pointer-math: | $(BUILD)
 	$(CXX) -std=c++11 -Wall -Wextra -Werror -O1 -g -fsanitize=address,undefined -I$(ROOT)/vm/port $(ROOT)/tests/vm_pointer_math.cpp -o $(BUILD)/vm_pointer_math_host
 	$(BUILD)/vm_pointer_math_host

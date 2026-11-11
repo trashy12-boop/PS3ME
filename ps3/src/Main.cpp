@@ -5,6 +5,7 @@
 #include "GameSettings.hpp"
 #include "ControlMenu.hpp"
 #include "BrowserUI.hpp"
+#include "Favorites.hpp"
 #include "MenuLanguage.hpp"
 #include "hal/LcdDevice.hpp"
 #include <SDL_gfxPrimitives.h>
@@ -212,7 +213,7 @@ static std::string previousRun(){
     return "prev: "+(text.empty()?std::string("empty"):text);
 }
 namespace {
-struct Entry{std::string name;bool directory;};
+struct Entry{std::string name,path;bool directory,available;};
 bool game(const std::string& name) {
     if(name.size()<5)return false;
     std::string end=name.substr(name.size()-4);
@@ -227,10 +228,25 @@ std::vector<Entry> list(const std::string& path) {
         if(!std::strcmp(d->d_name,".")||!std::strcmp(d->d_name,".."))continue;
         struct stat s;std::string p=path+"/"+d->d_name;
         if(::stat(p.c_str(),&s)!=0)continue;
-        if(S_ISDIR(s.st_mode)||game(d->d_name)){Entry e;e.name=d->d_name;e.directory=S_ISDIR(s.st_mode);entries.push_back(e);}
+        if(S_ISDIR(s.st_mode)||game(d->d_name)){Entry e;e.name=d->d_name;e.path=p;e.directory=S_ISDIR(s.st_mode);e.available=true;entries.push_back(e);}
     }
     ::closedir(dir);
     std::sort(entries.begin(),entries.end(),[](const Entry& a,const Entry& b){return a.directory!=b.directory?a.directory>b.directory:a.name<b.name;});
+    return entries;
+}
+std::vector<Entry> listFavorites(const ps3me::Favorites& favorites) {
+    std::vector<Entry> entries;
+    const std::vector<std::string>& paths=favorites.paths();
+    for(size_t i=0;i<paths.size();++i){
+        Entry e;e.path=paths[i];e.directory=false;e.available=false;
+        size_t slash=e.path.find_last_of('/');e.name=slash==std::string::npos?e.path:e.path.substr(slash+1);
+        struct stat info;
+        if(::stat(e.path.c_str(),&info)==0&&S_ISREG(info.st_mode))e.available=true;
+        entries.push_back(e);
+    }
+    std::sort(entries.begin(),entries.end(),[](const Entry& a,const Entry& b){
+        return a.name==b.name?a.path<b.path:a.name<b.name;
+    });
     return entries;
 }
 std::string key(const std::string& path) {
@@ -280,7 +296,7 @@ int main(int argc,char** argv) {
     ::freopen((std::string(home)+"/logs/runtime.log").c_str(),"ab",stderr);
     ::setvbuf(stdout,0,_IOLBF,0);
     ::setvbuf(stderr,0,_IOLBF,0);
-    ::fprintf(stderr,"[PS3ME boot] build 01.25: initializing SDL video (audio deferred)\n");
+    ::fprintf(stderr,"[PS3ME boot] build 01.26: initializing SDL video (audio deferred)\n");
     if(SDL_Init(SDL_INIT_VIDEO)!=0){::fprintf(stderr,"[PS3ME boot] SDL_Init: %s\n",SDL_GetError());return 1;}
     ::fprintf(stderr,"[PS3ME boot] SDL video subsystem ready\n");
     ps3me::installPlatform(storage,video,controller,clock,heap,log);
@@ -292,10 +308,13 @@ int main(int argc,char** argv) {
     SDL_Surface* menu=SDL_CreateRGBSurface(SDL_SWSURFACE,1280,720,32,0xff0000,0xff00,0xff,0);
     if(!menu){::fprintf(stderr,"[PS3ME boot] menu surface failed: %s\n",SDL_GetError());SDL_Quit();return 3;}
     ::fprintf(stderr,"[PS3ME boot] entering menu\n");
-    std::string path=std::string(home)+"/games",message=ps3me::tr("Direcional direito: cursor. R2: toque. Quadrado: configurações.","Right stick: cursor. R2: touch/drag. Square: settings.");
+    std::string path=std::string(home)+"/games",message=ps3me::tr("Direcional direito: cursor. R2: favoritar. L2: favoritos. Quadrado: controles.","Right stick: cursor. R2: favorite. L2: favorites. Square: controls.");
     // Boot line carries the callback registration result; it is the first thing
     // to check if the console is still unhappy about the PS button.
     message+="  |  "+sysutilReport()+"  |  "+previousRun();
+    ps3me::Favorites favorites(std::string(home)+"/config/favorites.cfg");
+    favorites.load();
+    bool favoritesView=false;
     std::vector<Entry> entries=list(path);int selected=0,resolution=1;
     const int dimensions[][2]={{176,220},{240,320},{320,240},{352,416},{480,800}};
     // Explicit opt-in tests; normal XMB boot always opens the browser.
@@ -381,20 +400,41 @@ int main(int argc,char** argv) {
         traceMenuStage(frames,"events.after");
         ps2::hal::PadButtons b;controller.read(&b);
         traceMenuStage(frames,"controller.after");
-        if(b.square&&!previous.square){ps3me::showControlMenu(controller);controller.read(&b);previous=b;message=ps3me::tr("Configurações atualizadas.","Settings updated.");dirty=true;}
+        if(b.square&&!previous.square){ps3me::showControlMenu(controller);controller.read(&b);previous=b;message=ps3me::tr("Controles atualizados.","Controls updated.");dirty=true;}
         if(!b.start)ignoreStartUntilReleased=false;
         if(b.start&&!previous.start&&!ignoreStartUntilReleased)done=true;
         if(b.up&&!previous.up&&selected>0){--selected;dirty=true;}
         if(b.down&&!previous.down&&selected+1<static_cast<int>(entries.size())){++selected;dirty=true;}
         if(b.triangle&&!previous.triangle){resolution=(resolution+1)%5;dirty=true;}
-        bool reload=false;
-        if(b.select&&!previous.select){reload=true;ps3me_browser_clear();message=ps3me::tr("Biblioteca atualizada.","Library refreshed.");dirty=true;}
-        if(b.l1&&!previous.l1){path="/dev_usb000";reload=true;dirty=true;}
-        if(b.r1&&!previous.r1){path="/dev_hdd0";reload=true;dirty=true;}
-        if(b.circle&&!previous.circle){size_t at=path.find_last_of('/');path=at==0?"/":path.substr(0,at);reload=true;dirty=true;}
-        if(b.cross&&!previous.cross&&selected>=0&&selected<static_cast<int>(entries.size())) {
-            const Entry e=entries[selected];std::string chosen=path+"/"+e.name;
-            if(e.directory){path=chosen;reload=true;dirty=true;}
+        bool reload=false,favoriteChanged=false;
+        if(b.select&&!previous.select){favorites.load();reload=true;ps3me_browser_clear();message=ps3me::tr("Biblioteca atualizada.","Library refreshed.");dirty=true;}
+        if(b.l1&&!previous.l1){favoritesView=false;path="/dev_usb000";reload=true;dirty=true;}
+        if(b.r1&&!previous.r1){favoritesView=false;path="/dev_hdd0";reload=true;dirty=true;}
+        if(b.l2&&!previous.l2){favoritesView=!favoritesView;reload=true;dirty=true;message=favoritesView?ps3me::tr("Seus jogos favoritos.","Your favorite games."):ps3me::tr("Todos os jogos.","All games.");}
+        if(b.circle&&!previous.circle){
+            if(favoritesView){favoritesView=false;reload=true;message=ps3me::tr("Voltando para os jogos.","Back to games.");}
+            else{size_t at=path.find_last_of('/');path=at==0?"/":path.substr(0,at);reload=true;}
+            dirty=true;
+        }
+        if(b.r2&&!previous.r2&&selected>=0&&selected<static_cast<int>(entries.size())){
+            const Entry e=entries[selected];
+            favoriteChanged=true;dirty=true;
+            if(e.directory)message=ps3me::tr("Escolha um jogo, não uma pasta.","Select a game, not a folder.");
+            else if(!e.available&&!favoritesView)message=ps3me::tr("Esse jogo não está disponível.","That game is unavailable.");
+            else{
+                bool nowFavorite=false;
+                if(favorites.toggle(e.path,nowFavorite)){
+                    message=nowFavorite?ps3me::tr("Jogo adicionado aos favoritos.","Game added to favorites."):
+                                           ps3me::tr("Jogo removido dos favoritos.","Game removed from favorites.");
+                    ps3me_browser_clear();ps3me_browser_invalidate();
+                    if(favoritesView){entries=listFavorites(favorites);if(selected>=static_cast<int>(entries.size()))selected=entries.empty()?0:static_cast<int>(entries.size())-1;}
+                }else message=ps3me::tr("Não foi possível salvar os favoritos.","Could not save favorites.");
+            }
+        }
+        if(b.cross&&!previous.cross&&!favoriteChanged&&!reload&&selected>=0&&selected<static_cast<int>(entries.size())) {
+            const Entry e=entries[selected];std::string chosen=e.path;
+            if(e.directory){path=chosen;favoritesView=false;reload=true;dirty=true;}
+            else if(!e.available){message=ps3me::tr("Este favorito não está disponível. Conecte o USB ou remova-o com R2.","This favorite is unavailable. Connect its USB drive or remove it with R2.");dirty=true;}
             else {
                 ps3me_browser_clear();
                 int result=launch(chosen,dimensions[resolution][0],dimensions[resolution][1]);
@@ -402,12 +442,14 @@ int main(int argc,char** argv) {
                 char info[80];::snprintf(info,sizeof(info),"MIDP returned %d; see logs/runtime.log",result);message=info;ps3me_browser_reset_animation();ps3me_browser_invalidate();dirty=true;
             }
         }
-        if(reload){ps3me_browser_clear();ps3me_browser_reset_animation();ps3me_browser_invalidate();entries=list(path);selected=0;dirty=true;}
+        if(reload){ps3me_browser_clear();ps3me_browser_reset_animation();ps3me_browser_invalidate();entries=favoritesView?listFavorites(favorites):list(path);selected=0;dirty=true;}
         if(dirty||ps3me_browser_animation_active(selected)||menuTraceForceRedraw){
-            std::vector<std::string> names;names.reserve(entries.size());for(const Entry& e:entries)names.push_back(e.name);
+            std::vector<std::string> names,paths;names.reserve(entries.size());paths.reserve(entries.size());for(const Entry& e:entries){names.push_back(e.name);paths.push_back(e.path);}
+            const std::string displayPath=favoritesView?ps3me::tr("Favoritos","Favorites"):path;
             writeState("draw");
             traceMenuStage(frames,"browser.draw.before");
-            ps3me_browser_draw(menu,path,names,selected,dimensions[resolution][0],dimensions[resolution][1],message);
+            ps3me_browser_draw(menu,displayPath,names,paths,favorites.paths(),selected,
+                               dimensions[resolution][0],dimensions[resolution][1],message,favoritesView);
             traceMenuStage(frames,"browser.draw.after");
             // Most PS3s run this menu at 1280x720 already. Avoid a full-screen
             // software scaler when no scaling is required.

@@ -14,5 +14,7 @@ void ps3me_browser_invalidate();
 void ps3me_browser_reset_animation();
 bool ps3me_browser_animation_active(int selected);
 void ps3me_browser_draw_loading(SDL_Surface*,const std::string&);
-void ps3me_browser_draw(SDL_Surface*,const std::string&,const std::vector<std::string>&,int,int,int,const std::string&);
+void ps3me_browser_draw(SDL_Surface*,const std::string&,const std::vector<std::string>&,
+                        const std::vector<std::string>&,const std::vector<std::string>&,
+                        int,int,int,const std::string&,bool favoritesView);
 BrowserBand ps3me_browser_last_band();

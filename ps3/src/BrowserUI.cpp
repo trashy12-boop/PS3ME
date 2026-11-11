@@ -28,6 +28,7 @@ SDL_Surface* background=0;SDL_Surface* base=0;SDL_Surface* highlight=0;
 TTF_Font *big=0,*normal=0,*small=0;
 std::string basePath,baseMessage;
 std::vector<std::string> baseNames;
+bool baseFavorites=false;
 int baseWidth=0,baseHeight=0;
 bool baseValid=false;
 BrowserBand lastBand={0,720};
@@ -59,7 +60,7 @@ void promptLabel(SDL_Surface* s, int x, int y, const char* id, const char* label
 
 std::string trim(std::string s){size_t a=s.find_first_not_of(" \t\r\n"),b=s.find_last_not_of(" \t\r\n");return a==std::string::npos?"":s.substr(a,b-a+1);}
 std::vector<char> entry(struct zip* z,const char* name,int max){struct zip_stat st;std::vector<char>b;if(zip_stat(z,name,0,&st)||st.size<=0||st.size>max)return b;struct zip_file* f=zip_fopen(z,name,0);if(!f)return b;b.resize(st.size);size_t got=0;while(got<b.size()){ssize_t n=zip_fread(f,b.data()+got,b.size()-got);if(n<=0)break;got+=n;}zip_fclose(f);if(got!=b.size())b.clear();return b;}
-Item load(const std::string& p,const std::string& name){Item i;i.title=name;struct stat st;if(!stat(p.c_str(),&st)&&S_ISDIR(st.st_mode)){i.dir=true;i.vendor="Folder";return i;}int err=0;struct zip* z=zip_open(p.c_str(),0,&err);if(!z)return i;auto b=entry(z,"META-INF/MANIFEST.MF",65536);std::map<std::string,std::string> m;std::string s(b.begin(),b.end()),key;size_t a=0;while(a<s.size()){size_t e=s.find('\n',a);std::string line=s.substr(a,e-a);if(!line.empty()&&line.back()=='\r')line.pop_back();if(!line.empty()&&line[0]==' '&&!key.empty())m[key]+=line.substr(1);else{size_t c=line.find(':');key.clear();if(c!=std::string::npos){key=line.substr(0,c);m[key]=trim(line.substr(c+1));}}if(e==std::string::npos)break;a=e+1;}if(!m["MIDlet-Name"].empty())i.title=m["MIDlet-Name"];i.vendor=m["MIDlet-Vendor"];std::string icon=m["MIDlet-Icon"];if(icon.empty()){std::string first=m["MIDlet-1"];size_t c=first.find(','),d=c==std::string::npos?c:first.find(',',c+1);if(d!=std::string::npos)icon=trim(first.substr(c+1,d-c-1));}while(!icon.empty()&&icon[0]=='/')icon.erase(0,1);if(icon.find("..") ==std::string::npos&&icon.size()<512){auto png=entry(z,icon.c_str(),1048576);if(png.size()>=24&&!std::memcmp(png.data(),"\x89PNG\r\n\x1a\n",8)){const unsigned char* v=(const unsigned char*)png.data();unsigned w=(unsigned(v[16])<<24)|(v[17]<<16)|(v[18]<<8)|v[19],h=(unsigned(v[20])<<24)|(v[21]<<16)|(v[22]<<8)|v[23];if(w&&h&&w<=512&&h<=512){SDL_RWops* rw=SDL_RWFromConstMem(png.data(),png.size());if(rw){SDL_Surface* raw=IMG_Load_RW(rw,1);if(raw){SDL_Surface* format=SDL_CreateRGBSurface(SDL_SWSURFACE,1,1,32,0xff0000,0xff00,0xff,0xff000000);if(format){i.icon=SDL_ConvertSurface(raw,format->format,SDL_SWSURFACE);SDL_FreeSurface(format);}SDL_FreeSurface(raw);}}}}}zip_close(z);return i;}
+Item load(const std::string& p,const std::string& name){Item i;i.title=name;struct stat st;if(stat(p.c_str(),&st)!=0){i.vendor=ps3me::tr("Não disponível","Unavailable");return i;}if(S_ISDIR(st.st_mode)){i.dir=true;i.vendor="Folder";return i;}int err=0;struct zip* z=zip_open(p.c_str(),0,&err);if(!z)return i;auto b=entry(z,"META-INF/MANIFEST.MF",65536);std::map<std::string,std::string> m;std::string s(b.begin(),b.end()),key;size_t a=0;while(a<s.size()){size_t e=s.find('\n',a);std::string line=s.substr(a,e-a);if(!line.empty()&&line.back()=='\r')line.pop_back();if(!line.empty()&&line[0]==' '&&!key.empty())m[key]+=line.substr(1);else{size_t c=line.find(':');key.clear();if(c!=std::string::npos){key=line.substr(0,c);m[key]=trim(line.substr(c+1));}}if(e==std::string::npos)break;a=e+1;}if(!m["MIDlet-Name"].empty())i.title=m["MIDlet-Name"];i.vendor=m["MIDlet-Vendor"];std::string icon=m["MIDlet-Icon"];if(icon.empty()){std::string first=m["MIDlet-1"];size_t c=first.find(','),d=c==std::string::npos?c:first.find(',',c+1);if(d!=std::string::npos)icon=trim(first.substr(c+1,d-c-1));}while(!icon.empty()&&icon[0]=='/')icon.erase(0,1);if(icon.find("..") ==std::string::npos&&icon.size()<512){auto png=entry(z,icon.c_str(),1048576);if(png.size()>=24&&!std::memcmp(png.data(),"\x89PNG\r\n\x1a\n",8)){const unsigned char* v=(const unsigned char*)png.data();unsigned w=(unsigned(v[16])<<24)|(v[17]<<16)|(v[18]<<8)|v[19],h=(unsigned(v[20])<<24)|(v[21]<<16)|(v[22]<<8)|v[23];if(w&&h&&w<=512&&h<=512){SDL_RWops* rw=SDL_RWFromConstMem(png.data(),png.size());if(rw){SDL_Surface* raw=IMG_Load_RW(rw,1);if(raw){SDL_Surface* format=SDL_CreateRGBSurface(SDL_SWSURFACE,1,1,32,0xff0000,0xff00,0xff,0xff000000);if(format){i.icon=SDL_ConvertSurface(raw,format->format,SDL_SWSURFACE);SDL_FreeSurface(format);}SDL_FreeSurface(raw);}}}}}zip_close(z);return i;}
 void freeItem(Item& i){
     if(i.icon)SDL_FreeSurface(i.icon);
     if(i.preview)SDL_FreeSurface(i.preview);
@@ -137,34 +138,43 @@ void icon(SDL_Surface* s,Item& i,int x,int y,int n){
 }
 // Everything that does not move with the selection. Rendered once into a
 // retained surface so an animation frame only has to repaint the row band.
-void drawChrome(SDL_Surface* t,const std::string& path,const std::vector<std::string>& names,const std::string& message){
+void drawChrome(SDL_Surface* t,const std::string& path,const std::vector<std::string>& names,const std::string& message,bool favoritesView){
     if(background)SDL_BlitSurface(background,0,t,0);else SDL_FillRect(t,0,0);
     text(t,76,38,"PS3ME",big,400);
-    text(t,255,48,ps3me::tr("Jogos","Games"),normal,280);
-    text(t,990,48,"01.25 / J2ME",small,245);
+    if(!favoritesView)roundedRectangleRGBA(t,247,39,392,78,7,116,173,255,190);
+    else roundedRectangleRGBA(t,443,39,638,78,7,116,173,255,190);
+    text(t,255,48,ps3me::tr("Jogos","Games"),normal,140);
+    ps3me::drawPrompt(t,413,45,"L2",19);
+    text(t,449,48,ps3me::tr("Favoritos","Favorites"),normal,190);
+    text(t,990,48,"01.26 / J2ME",small,245);
     text(t,80,108,path,small,1120);
     hlineRGBA(t,80,1198,142,210,235,255,40);
-    if(names.empty())text(t,92,302,ps3me::tr("Nenhum jogo aqui. SELECT: atualizar","No games here. SELECT: refresh"),normal,970);
+    if(names.empty())text(t,92,302,favoritesView?
+        ps3me::tr("Nenhum favorito ainda. Selecione um jogo e aperte R2.","No favorites yet. Select a game and press R2."):
+        ps3me::tr("Nenhum jogo aqui. SELECT: atualizar","No games here. SELECT: refresh"),normal,970);
     text(t,80,595,message,small,1120);
     hlineRGBA(t,80,1198,628,220,240,255,35);
     promptLabel(t,80,644,"X",ps3me::tr("Abrir","Open"));
-    promptLabel(t,270,644,"O",ps3me::tr("Voltar","Back"));
-    promptLabel(t,450,644,"SQUARE",ps3me::tr("Configurações","Settings"));
-    promptLabel(t,705,644,"SELECT",ps3me::tr("Atualizar","Refresh"));
-    promptLabel(t,965,644,"START",ps3me::tr("Sair","Exit"));
+    promptLabel(t,195,644,"O",ps3me::tr("Voltar","Back"));
+    promptLabel(t,310,644,"SQUARE",ps3me::tr("Controles","Controls"));
+    promptLabel(t,490,644,"R2",ps3me::tr("Favoritar","Favorite"));
+    promptLabel(t,650,644,"L2",ps3me::tr("Jogos/Favs","Games/Favs"));
+    promptLabel(t,820,644,"SELECT",ps3me::tr("Atualizar","Refresh"));
+    promptLabel(t,1055,644,"START",ps3me::tr("Sair","Exit"));
     promptLabel(t,80,681,"L1","USB");
     promptLabel(t,270,681,"R1","HDD");
     promptLabel(t,450,681,"TRIANGLE",ps3me::tr("Resolução","Resolution"));
 }
-bool chromeIsCurrent(const std::string& path,const std::vector<std::string>& names,int w,int h,const std::string& message){
-    return baseValid&&basePath==path&&baseMessage==message&&baseWidth==w&&baseHeight==h&&baseNames==names;
+bool chromeIsCurrent(const std::string& path,const std::vector<std::string>& names,int w,int h,const std::string& message,bool favoritesView){
+    return baseValid&&basePath==path&&baseMessage==message&&baseWidth==w&&baseHeight==h&&baseNames==names&&baseFavorites==favoritesView;
 }
-bool ensureChrome(const std::string& path,const std::vector<std::string>& names,int w,int h,const std::string& message){
-    if(!chromeIsCurrent(path,names,w,h,message)){
+bool ensureChrome(const std::string& path,const std::vector<std::string>& names,int w,int h,const std::string& message,bool favoritesView){
+    if(!chromeIsCurrent(path,names,w,h,message,favoritesView)){
         if(!base)base=SDL_CreateRGBSurface(SDL_SWSURFACE,1280,720,32,0xff0000,0xff00,0xff,0);
         if(!base)return false;
-        drawChrome(base,path,names,message);
+        drawChrome(base,path,names,message,favoritesView);
         basePath=path;baseMessage=message;baseNames=names;baseWidth=w;baseHeight=h;
+        baseFavorites=favoritesView;
         baseValid=true;
     }
     return true;
@@ -184,9 +194,11 @@ void ps3me_browser_draw_loading(SDL_Surface* surface,const std::string& path){
     text(surface,80,355,filename,normal,1080);
     hlineRGBA(surface,80,1198,630,210,235,255,40);
 }
-void ps3me_browser_draw(SDL_Surface* s,const std::string& path,const std::vector<std::string>& names,int selected,int w,int h,const std::string& message){
+void ps3me_browser_draw(SDL_Surface* s,const std::string& path,const std::vector<std::string>& names,
+                        const std::vector<std::string>& paths,const std::vector<std::string>& favorites,
+                        int selected,int w,int h,const std::string& message,bool favoritesView){
     ensureUi();
-    const bool chromeChanged=!chromeIsCurrent(path,names,w,h,message);
+    const bool chromeChanged=!chromeIsCurrent(path,names,w,h,message,favoritesView);
     // Salsa64 navigation: position eases at 14/s rather than snapping by one item.
     // Use elapsed time, not frame count: handles 30/60 FPS and slow frames.
     unsigned int now=SDL_GetTicks();
@@ -201,8 +213,8 @@ void ps3me_browser_draw(SDL_Surface* s,const std::string& path,const std::vector
     // A frame that only moves the selection repaints the row band; the whole
     // surface is rebuilt only when the chrome itself changed or no retained
     // surface is available on this console.
-    if(!ensureChrome(path,names,w,h,message)){
-        drawChrome(s,path,names,message);
+    if(!ensureChrome(path,names,w,h,message,favoritesView)){
+        drawChrome(s,path,names,message,favoritesView);
         lastBand.top=0;lastBand.bottom=720;
     }else if(chromeChanged){
         SDL_BlitSurface(base,0,s,0);
@@ -226,7 +238,7 @@ void ps3me_browser_draw(SDL_Surface* s,const std::string& path,const std::vector
         float yOff=ad<=1.0f?ad*94.0f:94.0f+(ad-1.0f)*54.0f;
         int y=302+(int)((d<0?-1.0f:1.0f)*yOff);
         if(y<150||y>550)continue;
-        const std::string p=path+"/"+names[index];
+        const std::string p=static_cast<size_t>(index)<paths.size()?paths[index]:path+"/"+names[index];
         if(!cache.count(p))cache[p]=load(p,names[index]);
         Item& i=cache[p];
         bool focused=index==selected;
@@ -244,13 +256,15 @@ void ps3me_browser_draw(SDL_Surface* s,const std::string& path,const std::vector
         }
         int n=40+(int)(30.0f*focus);
         icon(s,i,92,y,n);
-        text(s,190,y,i.title,focus>0.45f?big:normal,480);
+        const bool favorite=std::find(favorites.begin(),favorites.end(),p)!=favorites.end();
+        text(s,190,y,i.title+(favorite?"  [*]":""),focus>0.45f?big:normal,480);
         if(focused&&ad<0.35f){
             text(s,193,y+44,i.dir?ps3me::tr("Pasta","Folder"):i.vendor,small,450);
             if(!i.dir){
                 icon(s,i,886,224,176);
                 text(s,795,431,i.title,normal,385);
                 text(s,795,473,i.vendor,small,385);
+                text(s,795,494,favorite?ps3me::tr("Favorito","Favorite"):"",small,385);
                 char dims[96];
                 ::snprintf(dims,sizeof(dims),ps3me::tr("%d x %d / Toque em Controles","%d x %d / Touch in Controls"),w,h);
                 text(s,795,520,dims,small,385);

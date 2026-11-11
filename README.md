@@ -66,7 +66,7 @@ Up/Down selects an option. Left/Right or X adjusts values. Configure resolution 
 
 For landscape games choose 320×240, not 240×320. Some JARs require their own landscape edition.
 
-## Network support in the 01.24 development build
+## Network support in the 01.24–01.25 development builds
 
 The network branch adds HTTP, TCP sockets, UDP and asynchronous DNS using the
 PS3 connection configured in system settings (Wi-Fi or Ethernet). See the
@@ -81,6 +81,7 @@ Base folder: `/dev_hdd0/game/PS3ME0001/USRDIR/`
 - `games/`: JAR/JAD games.
 - `appdb/`: installed Java suites and RMS saved data.
 - `config/controls.cfg`: global button configuration.
+- `config/favorites.cfg`: favorite JAR/JAD paths.
 - `config/games/`: per-game button and resolution settings.
 - `logs/runtime.log`: diagnostics.
 
@@ -104,4 +105,4 @@ Source, build scripts and dependency pins are included here. Release source ZIPs
 
 ## Versions and tags
 
-Tags identify a **specific code snapshot**. Versions use `v1.14`, `v1.15`, `v1.16`, and so on. Experimental/Alpha belongs in the release title and pre-release status. Current build: **01.23**. For downloads, check [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases). See [documentation index](docs/README.md), [v1.19 release notes](RELEASE_NOTES_01.19.md), and [v1.16 release notes](RELEASE_NOTES_01.16.md).
+Tags identify a **specific code snapshot**. Versions use `v1.14`, `v1.15`, `v1.16`, and so on. Experimental/Alpha belongs in the release title and pre-release status. Latest published release: **01.23**. The draft development branch is **01.26** and adds persistent game favorites plus an LG C397 visual controller editor. In the browser, **R2** toggles the selected game's favorite status and **L2** switches between Games and Favorites; the editor highlights the assigned J2ME key in blue. For downloads, check [GitHub Releases](https://github.com/trashy12-boop/PS3ME/releases). See [documentation index](docs/README.md), [v1.19 release notes](RELEASE_NOTES_01.19.md), and [v1.16 release notes](RELEASE_NOTES_01.16.md).
